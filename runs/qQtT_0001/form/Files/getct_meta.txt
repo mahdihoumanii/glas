@@ -1,0 +1,7 @@
+process=q q~ > t t~
+gs_power_1l=4
+b=2
+nhext=2
+ng=0
+imax=1
+jmax=1

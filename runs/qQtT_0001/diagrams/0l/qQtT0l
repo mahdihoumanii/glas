@@ -1,0 +1,13 @@
+Local d1 =
+
++(1)*
+ qin(-1,p1)*
+ qBin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ gprop(1,2,-p1-p2, 0)*
+ vx(qB(-3,p2),q(-1,p1),g(1,-p1-p2))*
+ vx(topB(-2,-p3),top(-4,-p4),g(2,p1+p2));
+
+
+

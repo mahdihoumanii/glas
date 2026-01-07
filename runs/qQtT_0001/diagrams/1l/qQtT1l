@@ -1,0 +1,162 @@
+Local d1 =
+
+-(1)*
+ qin(-1,p1)*
+ qBin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ gprop(1,2,-p1-p2, 0)*
+ gprop(3,4,p3+p4, 0)*
+ fprop(5,6,lm1-p1-p2, 0)*
+ fprop(7,8,lm1, 0)*
+ vx(qB(-3,p2),q(-1,p1),g(1,-p1-p2))*
+ vx(topB(-2,-p3),top(-4,-p4),g(3,p3+p4))*
+ vx(qB(8,-lm1),q(5,lm1-p1-p2),g(2,p1+p2))*
+ vx(qB(6,-lm1+p1+p2),q(7,lm1),g(4,-p3-p4));
+
+Local d2 =
+
+-(1)*
+ qin(-1,p1)*
+ qBin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ gprop(1,2,-p1-p2, 0)*
+ gprop(3,4,p3+p4, 0)*
+ fprop(5,6,lm1-p1-p2, mt)*
+ fprop(7,8,lm1, mt)*
+ vx(qB(-3,p2),q(-1,p1),g(1,-p1-p2))*
+ vx(topB(-2,-p3),top(-4,-p4),g(3,p3+p4))*
+ vx(topB(8,-lm1),top(5,lm1-p1-p2),g(2,p1+p2))*
+ vx(topB(6,-lm1+p1+p2),top(7,lm1),g(4,-p3-p4));
+
+Local d3 =
+
++(1/2)*
+ qin(-1,p1)*
+ qBin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ gprop(1,2,-p1-p2, 0)*
+ gprop(3,4,p3+p4, 0)*
+ gprop(5,6,lm1-p1-p2, 0)*
+ gprop(7,8,-lm1, 0)*
+ vx(qB(-3,p2),q(-1,p1),g(1,-p1-p2))*
+ vx(topB(-2,-p3),top(-4,-p4),g(3,p3+p4))*
+ vx(g(2,p1+p2),g(5,lm1-p1-p2),g(7,-lm1))*
+ vx(g(4,-p3-p4),g(6,-lm1+p1+p2),g(8,lm1));
+
+Local d4 =
+
+-(1)*
+ qin(-1,p1)*
+ qBin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ gprop(1,2,-p1-p2, 0)*
+ gprop(3,4,p3+p4, 0)*
+ ghprop(5,6,lm1-p1-p2, 0)*
+ ghprop(7,8,lm1, 0)*
+ vx(qB(-3,p2),q(-1,p1),g(1,-p1-p2))*
+ vx(topB(-2,-p3),top(-4,-p4),g(3,p3+p4))*
+ vx(ghB(8,-lm1),gh(5,lm1-p1-p2),g(2,p1+p2))*
+ vx(ghB(6,-lm1+p1+p2),gh(7,lm1),g(4,-p3-p4));
+
+Local d5 =
+
++(1)*
+ qin(-1,p1)*
+ qBin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ gprop(1,2,-p1-p2, 0)*
+ fprop(3,4,-lm1, mt)*
+ gprop(5,6,lm1+p3, 0)*
+ gprop(7,8,-lm1+p4, 0)*
+ vx(qB(-3,p2),q(-1,p1),g(1,-p1-p2))*
+ vx(topB(-2,-p3),top(3,-lm1),g(5,lm1+p3))*
+ vx(topB(4,lm1),top(-4,-p4),g(7,-lm1+p4))*
+ vx(g(2,p1+p2),g(6,-lm1-p3),g(8,lm1-p4));
+
+Local d6 =
+
++(1)*
+ qin(-1,p1)*
+ qBin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ gprop(1,2,-p1-p2, 0)*
+ gprop(3,4,-lm1, 0)*
+ fprop(5,6,lm1+p3, mt)*
+ fprop(7,8,lm1-p4, mt)*
+ vx(qB(-3,p2),q(-1,p1),g(1,-p1-p2))*
+ vx(topB(-2,-p3),top(5,lm1+p3),g(3,-lm1))*
+ vx(topB(8,-lm1+p4),top(-4,-p4),g(4,lm1))*
+ vx(topB(6,-lm1-p3),top(7,lm1-p4),g(2,p1+p2));
+
+Local d7 =
+
++(1)*
+ qin(-1,p1)*
+ qBin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ gprop(1,2,p3+p4, 0)*
+ fprop(3,4,lm1, 0)*
+ gprop(5,6,lm1-p1, 0)*
+ gprop(7,8,-lm1-p2, 0)*
+ vx(topB(-2,-p3),top(-4,-p4),g(1,p3+p4))*
+ vx(qB(4,-lm1),q(-1,p1),g(5,lm1-p1))*
+ vx(qB(-3,p2),q(3,lm1),g(7,-lm1-p2))*
+ vx(g(2,-p3-p4),g(6,-lm1+p1),g(8,lm1+p2));
+
+Local d8 =
+
++(1)*
+ qin(-1,p1)*
+ qBin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ gprop(1,2,p3+p4, 0)*
+ gprop(3,4,-lm1, 0)*
+ fprop(5,6,-lm1+p1, 0)*
+ fprop(7,8,-lm1-p2, 0)*
+ vx(topB(-2,-p3),top(-4,-p4),g(1,p3+p4))*
+ vx(qB(6,lm1-p1),q(-1,p1),g(3,-lm1))*
+ vx(qB(-3,p2),q(7,-lm1-p2),g(4,lm1))*
+ vx(qB(8,lm1+p2),q(5,-lm1+p1),g(2,-p3-p4));
+
+Local d9 =
+
++(1)*
+ qin(-1,p1)*
+ qBin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ fprop(1,2,lm1, 0)*
+ gprop(3,4,lm1-p1, 0)*
+ gprop(5,6,-lm1-p2, 0)*
+ fprop(7,8,lm1-p1+p3, mt)*
+ vx(qB(2,-lm1),q(-1,p1),g(3,lm1-p1))*
+ vx(qB(-3,p2),q(1,lm1),g(5,-lm1-p2))*
+ vx(topB(-2,-p3),top(7,lm1-p1+p3),g(4,-lm1+p1))*
+ vx(topB(8,-lm1+p1-p3),top(-4,-p4),g(6,lm1+p2));
+
+Local d10 =
+
++(1)*
+ qin(-1,p1)*
+ qBin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ fprop(1,2,lm1, 0)*
+ gprop(3,4,lm1-p1, 0)*
+ gprop(5,6,-lm1-p2, 0)*
+ fprop(7,8,-lm1+p1-p4, mt)*
+ vx(qB(2,-lm1),q(-1,p1),g(3,lm1-p1))*
+ vx(qB(-3,p2),q(1,lm1),g(5,-lm1-p2))*
+ vx(topB(8,lm1-p1+p4),top(-4,-p4),g(4,-lm1+p1))*
+ vx(topB(-2,-p3),top(7,-lm1+p1-p4),g(6,lm1+p2));
+
+
+
