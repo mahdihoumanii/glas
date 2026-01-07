@@ -34,7 +34,6 @@ Linus/MacOs
 - `glas> extract integrals`
 
 ## Commands
-hello world 
 
 ## Notes
 - `UVCT` writes outputs into the `UVCT` folder as `Vas.m`, `Vzt.m`, `Vg.m`, and `Vm.m`.
