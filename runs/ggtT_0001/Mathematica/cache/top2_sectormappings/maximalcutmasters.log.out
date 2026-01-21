@@ -1,0 +1,44 @@
+CalcLoop: a tool for automated multiloop calculation in quantum field theory.
+Version 2022/07/10.
+Number of defined symbols=45. Please see ?CalcLoop`* for help.
+Blade: a pacakge for block-triangular form improved Feynman integral decomposition.
+Version 2024/05/23.
+Author: Xin Guan, Xiao Liu, Yan-Qing Ma and Wen-Hao Wu.
+Number of defined symbols=68. Please see ?Blade`* for help.
+
+--------------------------------------------------
+BLSetReducerOptions->"IBPParameter" -> Automatic, "IntegralOrdering" -> 1, "CheckMastersQ" -> True, "FilterLevel" -> 3, "IBPForMapSector" -> False, "MaxIncrement" -> 2, "CloseSymmetry" -> False, "ExternalSymmetry" -> True, "CutNoDot" -> False, "BlackBoxRank" -> 2, "BlackBoxDot" -> 0, "MaxPrime" -> 200, "MaxDegree" -> 1000, "Reconstructor" -> "FiniteFlow"
+BLSetSchemeOptions->"OperatorExtendGQ" -> True, "MinimalSchemeRank" -> 1, "PartitionDot" -> True, "PartitionRankThreshold" -> 100, "UniqueSubsectorQ" -> True"--------------------------------------------------"
+"BladeIBP: a package for generating IBP, LI and Symmetry relations."
+
+FrontEndObject::notavail: A front end is not available; certain operations require a front end.
+Number of Families = 1. Number of Sectors = 10.
+"4 zero sectors found, 12 nonzero sectors found."
+"10 unique sectors found, 2 mapped sectors found, 0 extmapped sectors found."
+"9 subgraph-unique sectors found, 0 subgraph-mapped sectors found"
+"kernel 1 (Local (4)):"
+"{1, 1, 1, 1}\" done in: \"0.025585`4.8595304148041105\"s.\"\n"
+"kernel 2 (Local (4)):"
+"{1, 1, 1, 0}\" done in: \"0.028309`4.903469521916093\"s.\"\n"
+"kernel 3 (Local (4)):"
+"{1, 1, 0, 1}\" done in: \"0.025297`4.85461401424895\"s.\"\n"
+"kernel 4 (Local (4)):"
+"{1, 0, 1, 1}\" done in: \"0.028806`4.91102794984878\"s.\"\n"
+"kernel 1 (Local (4)):"
+"{0, 1, 1, 1}\" done in: \"0.022583`4.805326628024792\"s.\"\n"
+"kernel 2 (Local (4)):"
+"{1, 1, 0, 0}\" done in: \"0.020474`4.762747692446733\"s.\"\n"
+"kernel 3 (Local (4)):"
+"{1, 0, 0, 1}\" done in: \"0.022758`4.808679086582409\"s.\"\n"
+"kernel 4 (Local (4)):"
+"{0, 1, 1, 0}\" done in: \"0.021791`4.789822154192747\"s.\"\n"
+"kernel 1 (Local (4)):"
+"{0, 1, 0, 1}\" done in: \"0.019181`4.734416238831178\"s.\"\n"
+"kernel 3 (Local (4)):"
+"{0, 1, 0, 0}\" done in: \"0.015365`4.638077558088373\"s.\"\n"
+"kernel 4 (Local (4)):"
+"{0, 0, 0, 1}\" done in: \"0.018064`4.708358918076866\"s.\"\n"
+"kernel 2 (Local (4)):"
+"{0, 0, 1, 1}\" done in: \"0.023857`4.829160824055753\"s.\"\n"
+"fast determineMI done in: "0.665679`6.274809850090164
+"# rawmasters(nomap): "7", # rawmasters: "6

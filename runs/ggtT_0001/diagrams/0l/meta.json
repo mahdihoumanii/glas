@@ -1,0 +1,17 @@
+{
+  "created_at_utc": "2026-01-21T11:46:54.261744+00:00",
+  "process": "g g > t t~",
+  "tag": "ggtT",
+  "shape": "2>2",
+  "n_in": 2,
+  "n_out": 2,
+  "model": "qcd",
+  "options": [
+    "onshell",
+    "nosnails"
+  ],
+  "loop": 0,
+  "suffix": "0l",
+  "main_output_file": "ggtT0l",
+  "ndiagrams": 3
+}

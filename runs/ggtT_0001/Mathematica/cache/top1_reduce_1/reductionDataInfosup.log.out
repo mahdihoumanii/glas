@@ -1,0 +1,18 @@
+CalcLoop: a tool for automated multiloop calculation in quantum field theory.
+Version 2022/07/10.
+Number of defined symbols=45. Please see ?CalcLoop`* for help.
+Blade: a pacakge for block-triangular form improved Feynman integral decomposition.
+Version 2024/05/23.
+Author: Xin Guan, Xiao Liu, Yan-Qing Ma and Wen-Hao Wu.
+Number of defined symbols=68. Please see ?Blade`* for help.
+
+--------------------------------------------------
+BLSetReducerOptions->"IBPParameter" -> Automatic, "IntegralOrdering" -> 1, "CheckMastersQ" -> True, "FilterLevel" -> 3, "IBPForMapSector" -> False, "MaxIncrement" -> 2, "CloseSymmetry" -> False, "ExternalSymmetry" -> True, "CutNoDot" -> False, "BlackBoxRank" -> 2, "BlackBoxDot" -> 0, "MaxPrime" -> 200, "MaxDegree" -> 1000, "Reconstructor" -> "FiniteFlow"
+BLSetSchemeOptions->"OperatorExtendGQ" -> True, "MinimalSchemeRank" -> 1, "PartitionDot" -> True, "PartitionRankThreshold" -> 100, "UniqueSubsectorQ" -> True"--------------------------------------------------"
+"BladeIBP: a package for generating IBP, LI and Symmetry relations."
+
+FrontEndObject::notavail: A front end is not available; certain operations require a front end.
+Number of Families = 1. Number of Sectors = 1.
+"3 zero sectors found, 1 nonzero sectors found."
+"1 unique sectors found, 0 mapped sectors found, 0 extmapped sectors found."
+"1 subgraph-unique sectors found, 0 subgraph-mapped sectors found"

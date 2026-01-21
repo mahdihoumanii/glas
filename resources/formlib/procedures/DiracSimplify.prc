@@ -19,7 +19,7 @@ id p5 = p1+p2-p3-p4;
     .sort 
 
 argument Gamma, den, prop, FAD;
-id p5 = p1+p2-p3-p4;
+id p4 = p1+p2-p3;
 endargument; 
     .sort 
 splitarg Gamma;

@@ -405,7 +405,7 @@ endargument;
 #do i = {{`massive'}}
 #do j = {{`massive'}}
 
-id Log(Vel,`i',`j') = Log((1- Vel(`i',`j'))*den(1+ Vel(`i',`j')));
+id Log(Vel,`i',`j') = Log((1+ Vel(`i',`j'))*den(1- Vel(`i',`j')));
 
 #enddo 
 #enddo

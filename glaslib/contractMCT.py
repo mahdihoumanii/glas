@@ -166,7 +166,7 @@ l amp = d`i';
 Drop d`i'; 
     .sort
 #include Files/Amps/amp0l/d`j'.h
-Local ampC = 2* dC`j';
+Local ampC = -2* dC`j';
     .sort 
 
 Mul ampC; 

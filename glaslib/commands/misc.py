@@ -5,7 +5,9 @@ import shutil
 from pathlib import Path
 
 from glaslib.commands.common import AppState, parse_pick_flag
-from glaslib.commands import evaluate, generate
+import shlex
+
+from glaslib.commands import evaluate, generate, uvct
 from glaslib.core.paths import qgraf_exe, procedures_dir, runs_dir
 from glaslib.core.run_manager import RunContext, list_runs, pick_run_interactive, resolve_tag_from_process_or_tag
 
@@ -115,3 +117,26 @@ def smoke(state: AppState, arg: str) -> None:
         print(f"[smoke] run dir created: {state.ctx.run_dir}")
         evaluate.run(state, "lo")
         print("[smoke] OK.")
+
+
+def contract_full(state: AppState, arg: str) -> None:
+    if not state.ensure_run():
+        return
+    jobs = None
+    toks = shlex.split(arg)
+    if "--jobs" in toks:
+        try:
+            idx = toks.index("--jobs")
+            jobs = int(toks[idx + 1])
+        except Exception:
+            print("Usage: contract full [--jobs K]")
+            return
+    for mode in ("lo", "nlo", "mct"):
+        cmd = mode if jobs is None else f"{mode} --jobs {jobs}"
+        evaluate.run(state, cmd)
+    for mode in ("lo", "nlo", "mct"):
+        cmd = mode if jobs is None else f"{mode} --jobs {jobs}"
+        from glaslib.commands import contract
+
+        contract.run(state, cmd)
+    uvct.run(state, "")

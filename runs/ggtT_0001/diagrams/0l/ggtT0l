@@ -1,0 +1,35 @@
+Local d1 =
+
++(1)*
+ gin(-1,p1)*
+ gin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ gprop(1,2,-p1-p2, 0)*
+ vx(g(-1,p1),g(-3,p2),g(1,-p1-p2))*
+ vx(topB(-2,-p3),top(-4,-p4),g(2,p1+p2));
+
+Local d2 =
+
++(1)*
+ gin(-1,p1)*
+ gin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ fprop(1,2,-p1+p3, mt)*
+ vx(topB(-2,-p3),top(1,-p1+p3),g(-1,p1))*
+ vx(topB(2,p1-p3),top(-4,-p4),g(-3,p2));
+
+Local d3 =
+
++(1)*
+ gin(-1,p1)*
+ gin(-3,p2)*
+ topout(-2,p3)*
+ topBout(-4,p4)*
+ fprop(1,2,p1-p4, mt)*
+ vx(topB(2,-p1+p4),top(-4,-p4),g(-1,p1))*
+ vx(topB(-2,-p3),top(1,p1-p4),g(-3,p2));
+
+
+

@@ -210,16 +210,18 @@ repeat id D = 4-2*ep;
 
 #call PolarizationSums(5)
 
+repeat id D = 4-2*ep;
+
     .sort
 #call SymToRat
 
 format;
 .sort
-#write <Files/M0M0/d`i'x`j'.h> "l d`i'x`j' = (%E);\\n" d`j'
+#write <Files/M0M0/d`i'x`j'.h> "l d`i'x`j' = (%E);\\n" d`i'
 .sort
 format mathematica;
 .sort
-#write <../Mathematica/Files/M0M0/d`i'x`j'.m> "d[`i',`j'] = (%E);\\n" d`j'
+#write <../Mathematica/Files/M0M0/d`i'x`j'.m> "d[`i',`j'] = (%E);\\n" d`i'
 .sort
 Drop;
 #message `i'x`j'

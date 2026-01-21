@@ -47,10 +47,14 @@ class GlasShell(cmd.Cmd):
         return [m for m in MODES if not text or m.startswith(text)]
 
     def do_contract(self, arg: str) -> None:
+        if arg.strip().lower().startswith("full"):
+            misc.contract_full(self.state, arg)
+            return
         contract.run(self.state, arg)
 
     def complete_contract(self, text, line, begidx, endidx):
-        return [m for m in MODES if not text or m.startswith(text)]
+        modes = list(MODES) + ["full"]
+        return [m for m in modes if not text or m.startswith(text)]
 
     def do_uvct(self, arg: str) -> None:
         uvct.run(self.state, arg)
@@ -60,6 +64,9 @@ class GlasShell(cmd.Cmd):
 
     def do_extract(self, arg: str) -> None:
         extract.run(self.state, arg)
+
+    def do_ibp(self, arg: str) -> None:
+        extract.ibp(self.state, arg)
 
     def do_runs(self, arg: str) -> None:
         misc.runs(self.state, arg)
