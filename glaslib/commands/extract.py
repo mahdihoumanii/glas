@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from glaslib.commands.common import AppState
+from glaslib.commands.common import AppState, update_meta
 from glaslib.core.parallel import run_jobs
 from glaslib.topoformat import prepare_topoformat_project
 
@@ -164,6 +164,20 @@ def run(state: AppState, arg: str) -> None:
 
     print("[extract] OK -> Files/integrals.m, ../form/Files/intrule.h")
 
+    # Capture ntop (number of topologies) from Mathematica output
+    len_topos_path = run_mat_dir / "Files" / "lenTopos.txt"
+    if len_topos_path.exists():
+        try:
+            ntop_val = int(len_topos_path.read_text(encoding="utf-8").strip())
+            update_meta(run_dir, {"ntop": ntop_val})
+            if isinstance(state.ctx.meta, dict):
+                state.ctx.meta["ntop"] = ntop_val
+            print(f"[extract] Recorded ntop = {ntop_val} in meta.json")
+        except Exception as exc:
+            print(f"[extract] Warning: could not parse lenTopos.txt ({exc})")
+    else:
+        print("[extract] Warning: lenTopos.txt not found; ntop not recorded. Run extract_topologies_stage2.m output check.")
+
     print("[extract] Stage 3: Topology formatting with FORM (ToTopos)...")
     _run_topos_extraction(state, run_dir, repo_root)
 
@@ -279,6 +293,27 @@ def ibp(state: AppState, arg: str) -> None:
         return
 
     print(f"[ibp] OK -> Files/SymmetryRelations.m")
+
+    # Capture nmis (number of master integrals) from SymmetryRelations.m output
+    len_masters_path = run_mat_dir / "Files" / "lenMasters.txt"
+    if len_masters_path.exists():
+        try:
+            nmis_val = int(len_masters_path.read_text(encoding="utf-8").strip())
+            update_meta(run_dir, {"nmis": nmis_val})
+            if isinstance(state.ctx.meta, dict):
+                state.ctx.meta["nmis"] = nmis_val
+            print(f"[ibp] Recorded nmis = {nmis_val} in meta.json")
+        except Exception as exc:
+            print(f"[ibp] Warning: could not parse lenMasters.txt ({exc})")
+    else:
+        print("[ibp] Warning: lenMasters.txt not found; nmis not recorded. Check SymmetryRelations.m output.")
+
+    # Verify MastersToSym.h was created
+    masters_sym_path = run_dir / "form" / "Files" / "MastersToSym.h"
+    if not masters_sym_path.exists():
+        print(f"[ibp] Warning: MastersToSym.h not found in ../form/Files/")
+    else:
+        print("[ibp] Also generated ../form/Files/MastersToSym.h (master integral substitution rules)")
 
 
 def _run_topos_extraction(state: AppState, run_dir: Path, repo_root: Path) -> None:

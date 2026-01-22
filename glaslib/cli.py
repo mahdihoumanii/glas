@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import cmd
 
-from glaslib.commands import contract, evaluate, extract, generate, ioperator, misc, uvct
+from glaslib.commands import contract, evaluate, extract, generate, ioperator, linrels, misc, reduce, uvct
 from glaslib.commands.common import AppState, MODES
 from glaslib.core.run_manager import RunContext
 from glaslib.formprep import prepare_form
@@ -56,6 +56,9 @@ class GlasShell(cmd.Cmd):
         modes = list(MODES) + ["full"]
         return [m for m in modes if not text or m.startswith(text)]
 
+    def do_reduce(self, arg: str) -> None:
+        reduce.run(self.state, arg)
+
     def do_uvct(self, arg: str) -> None:
         uvct.run(self.state, arg)
 
@@ -67,6 +70,9 @@ class GlasShell(cmd.Cmd):
 
     def do_ibp(self, arg: str) -> None:
         extract.ibp(self.state, arg)
+
+    def do_linrels(self, arg: str) -> None:
+        linrels.run(self.state, arg)
 
     def do_runs(self, arg: str) -> None:
         misc.runs(self.state, arg)

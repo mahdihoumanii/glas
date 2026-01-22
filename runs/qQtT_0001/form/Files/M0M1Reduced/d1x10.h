@@ -1,0 +1,115 @@
+l d1x10 = ( + A0(mt^2)*gs^6*ep^(-1) * (  - 112/3*den(s12 - mt^2 + mt^2*s13)*i_
+          + 16/3*den(s12 - mt^2 + mt^2*s13)*i_*s13 - 32*den(s12 - mt^2 + mt^2*
+         s13)^2*i_*s13 - 32/3*den(s12 - mt^2 + mt^2*s13)^2*i_*s12 + 160/3*den(
+         s12 - mt^2 + mt^2*s13)^2*i_*mt^2 - 16/3*den(mt)^2*i_ + 64/3*den(mt)^2
+         *den(s12 - mt^2 + mt^2*s13)*i_*s13 + 32/3*den(mt)^2*den(s12 - mt^2 + 
+         mt^2*s13)*i_*s12 - 16/3*den(mt)^2*den(s12)*i_*s13 + 32/3*den(mt)^2*
+         den(s12)*den(s12 - mt^2 + mt^2*s13)*i_*s13^2 + 16/3*den(s12)*i_ - 112/
+         3*den(s12)*den(s12 - mt^2 + mt^2*s13)*i_*s13 + 16/3*den(s12)*den(s12
+          - mt^2 + mt^2*s13)*i_*s13^2 + 80/3*den(s12)*den(s12 - mt^2 + mt^2*
+         s13)*i_*mt^2 - 16/3*den(s12)*den(s12 - mt^2 + mt^2*s13)*i_*mt^2*s13
+          - 64/3*den(s12)*den(s12 - mt^2 + mt^2*s13)^2*i_*s13^2 + 64*den(s12)*
+         den(s12 - mt^2 + mt^2*s13)^2*i_*mt^2*s13 - 128/3*den(s12)*den(s12 - 
+         mt^2 + mt^2*s13)^2*i_*mt^4 )
+
+       + A0(mt^2)*gs^6 * ( 16/3*den( - 1 + 2*ep)*den(s12 - 4*mt^2)*i_ + 16/3*
+         den( - 1 + 2*ep)*den(s12 - 4*mt^2)*i_*s13 + 16/3*den( - 1 + 2*ep)*
+         den(s12 - mt^2 + mt^2*s13)*i_ - 16/3*den( - 1 + 2*ep)*den(s12 - mt^2
+          + mt^2*s13)*i_*s13 - 32/3*den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*s13
+         )^2*i_*s13 - 32/3*den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*s13)^2*i_*
+         s12 + 32/3*den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*s13)^2*i_*mt^2 - 16/
+         3*den(s12 - 4*mt^2)*i_ - 16/3*den(s12 - 4*mt^2)*i_*s13 + 136/3*den(
+         s12 - mt^2 + mt^2*s13)*i_ - 8*den(s12 - mt^2 + mt^2*s13)*i_*s13 + 112/
+         3*den(s12 - mt^2 + mt^2*s13)^2*i_*s13 + 16*den(s12 - mt^2 + mt^2*s13)
+         ^2*i_*s12 - 176/3*den(s12 - mt^2 + mt^2*s13)^2*i_*mt^2 + 40/3*den(mt)
+         ^2*i_ - 80/3*den(mt)^2*den(s12 - mt^2 + mt^2*s13)*i_*s13 - 16*den(mt)
+         ^2*den(s12 - mt^2 + mt^2*s13)*i_*s12 + 40/3*den(mt)^2*den(s12)*i_*s13
+          - 32/3*den(mt)^2*den(s12)*den(s12 - mt^2 + mt^2*s13)*i_*s13^2 - 40/3
+         *den(s12)*i_ + 16/3*den(s12)*den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*
+         s13)*i_*s13 - 16/3*den(s12)*den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*
+         s13)*i_*s13^2 - 16/3*den(s12)*den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*
+         s13)*i_*mt^2 + 16/3*den(s12)*den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*
+         s13)*i_*mt^2*s13 + 40*den(s12)*den(s12 - mt^2 + mt^2*s13)*i_*s13 - 8*
+         den(s12)*den(s12 - mt^2 + mt^2*s13)*i_*s13^2 - 88/3*den(s12)*den(s12
+          - mt^2 + mt^2*s13)*i_*mt^2 + 8*den(s12)*den(s12 - mt^2 + mt^2*s13)*
+         i_*mt^2*s13 + 64/3*den(s12)*den(s12 - mt^2 + mt^2*s13)^2*i_*s13^2 - 
+         64*den(s12)*den(s12 - mt^2 + mt^2*s13)^2*i_*mt^2*s13 + 128/3*den(s12)
+         *den(s12 - mt^2 + mt^2*s13)^2*i_*mt^4 )
+
+       + A0(mt^2)*gs^6*ep * (  - 16/3*den( - 1 + 2*ep)*den(s12 - 4*mt^2)*i_ - 
+         16/3*den( - 1 + 2*ep)*den(s12 - 4*mt^2)*i_*s13 - 8*den( - 1 + 2*ep)*
+         den(s12 - mt^2 + mt^2*s13)*i_ + 8*den( - 1 + 2*ep)*den(s12 - mt^2 + 
+         mt^2*s13)*i_*s13 + 16*den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*s13)^2*
+         i_*s13 + 16*den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*s13)^2*i_*s12 - 16
+         *den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*s13)^2*i_*mt^2 + 16/3*den(s12
+          - 4*mt^2)*i_ + 16/3*den(s12 - 4*mt^2)*i_*s13 - 16/3*den(s12 - mt^2
+          + mt^2*s13)*i_ - 32/3*den(s12 - mt^2 + mt^2*s13)^2*i_*s13 - 32/3*
+         den(s12 - mt^2 + mt^2*s13)^2*i_*s12 + 32/3*den(s12 - mt^2 + mt^2*s13)
+         ^2*i_*mt^2 - 8*den(mt)^2*i_ + 16/3*den(mt)^2*den(s12 - mt^2 + mt^2*
+         s13)*i_*s13 + 16/3*den(mt)^2*den(s12 - mt^2 + mt^2*s13)*i_*s12 - 16/3
+         *den(mt)^2*den(s12)*i_*s13 - 8/3*den(mt)^2*den(s12)*den( - 1 + 2*ep)*
+         i_*s13 + 16/3*den(s12)*i_ + 8/3*den(s12)*den( - 1 + 2*ep)*i_ - 8*den(
+         s12)*den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*s13)*i_*s13 + 8*den(s12)*
+         den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*s13)*i_*s13^2 + 8*den(s12)*
+         den( - 1 + 2*ep)*den(s12 - mt^2 + mt^2*s13)*i_*mt^2 - 8*den(s12)*den(
+          - 1 + 2*ep)*den(s12 - mt^2 + mt^2*s13)*i_*mt^2*s13 )
+
+       + B0( - s13 - s12 + 2*mt^2,0,mt^2)*gs^6*ep^(-1) * (  - 32*den(s12 - 
+         mt^2 + mt^2*s13)*i_*s13 - 32/3*den(s12 - mt^2 + mt^2*s13)*i_*s12 + 
+         160/3*den(s12 - mt^2 + mt^2*s13)*i_*mt^2 + 32*den(s12 - mt^2 + mt^2*
+         s13)^2*i_*mt^2*s13 + 32/3*den(s12 - mt^2 + mt^2*s13)^2*i_*mt^2*s12 - 
+         160/3*den(s12 - mt^2 + mt^2*s13)^2*i_*mt^4 - 64/3*den(s12)*den(s12 - 
+         mt^2 + mt^2*s13)*i_*s13^2 + 64*den(s12)*den(s12 - mt^2 + mt^2*s13)*i_
+         *mt^2*s13 - 128/3*den(s12)*den(s12 - mt^2 + mt^2*s13)*i_*mt^4 + 64/3*
+         den(s12)*den(s12 - mt^2 + mt^2*s13)^2*i_*mt^2*s13^2 - 64*den(s12)*
+         den(s12 - mt^2 + mt^2*s13)^2*i_*mt^4*s13 + 128/3*den(s12)*den(s12 - 
+         mt^2 + mt^2*s13)^2*i_*mt^6 )
+
+       + B0( - s13 - s12 + 2*mt^2,0,mt^2)*gs^6 * (  - 64/3*i_ + 80*den(s12 - 
+         mt^2 + mt^2*s13)*i_*s13 + 112/3*den(s12 - mt^2 + mt^2*s13)*i_*s12 - 
+         368/3*den(s12 - mt^2 + mt^2*s13)*i_*mt^2 - 80*den(s12 - mt^2 + mt^2*
+         s13)^2*i_*mt^2*s13 - 112/3*den(s12 - mt^2 + mt^2*s13)^2*i_*mt^2*s12
+          + 368/3*den(s12 - mt^2 + mt^2*s13)^2*i_*mt^4 - 32/3*den(s12)*i_*s13
+          + 32/3*den(s12)*i_*mt^2 + 128/3*den(s12)*den(s12 - mt^2 + mt^2*s13)*
+         i_*s13^2 - 128*den(s12)*den(s12 - mt^2 + mt^2*s13)*i_*mt^2*s13 + 256/
+         3*den(s12)*den(s12 - mt^2 + mt^2*s13)*i_*mt^4 - 128/3*den(s12)*den(
+         s12 - mt^2 + mt^2*s13)^2*i_*mt^2*s13^2 + 128*den(s12)*den(s12 - mt^2
+          + mt^2*s13)^2*i_*mt^4*s13 - 256/3*den(s12)*den(s12 - mt^2 + mt^2*s13
+         )^2*i_*mt^6 )
+
+       + B0( - s13 - s12 + 2*mt^2,0,mt^2)*gs^6*ep * ( 80/3*i_ - 64/3*den(s12
+          - mt^2 + mt^2*s13)*i_*s13 - 64/3*den(s12 - mt^2 + mt^2*s13)*i_*s12
+          + 64/3*den(s12 - mt^2 + mt^2*s13)*i_*mt^2 + 64/3*den(s12 - mt^2 + 
+         mt^2*s13)^2*i_*mt^2*s13 + 64/3*den(s12 - mt^2 + mt^2*s13)^2*i_*mt^2*
+         s12 - 64/3*den(s12 - mt^2 + mt^2*s13)^2*i_*mt^4 + 32/3*den(s12)*i_*
+         s13 - 32/3*den(s12)*i_*mt^2 )
+
+       + B0(s12,0,0)*gs^6*ep^(-1) * (  - 16*i_ - 112/3*den(s12)*i_*s13 + 64/3*
+         den(s12)*i_*mt^2 + 16/3*den(s12)*i_*mt^2*s13 - 64/3*den(s12)^2*i_*
+         s13^2 + 128/3*den(s12)^2*i_*mt^2*s13 - 64/3*den(s12)^2*i_*mt^4 )
+
+       + B0(s12,0,0)*gs^6 * ( 112/3*i_ - 8/3*i_*s13 + 8/3*den(s12 - 4*mt^2)*i_
+         *s12 + 8/3*den(s12 - 4*mt^2)*i_*s12*s13 + 208/3*den(s12)*i_*s13 - 128/
+         3*den(s12)*i_*mt^2 - 16/3*den(s12)*i_*mt^2*s13 + 128/3*den(s12)^2*i_*
+         s13^2 - 256/3*den(s12)^2*i_*mt^2*s13 + 128/3*den(s12)^2*i_*mt^4 )
+
+       + B0(s12,0,0)*gs^6*ep * (  - 8*i_ + 8/3*i_*s13 - 8/3*den(s12 - 4*mt^2)*
+         i_*s12 - 8/3*den(s12 - 4*mt^2)*i_*s12*s13 )
+
+       + C0(mt^2,s12,mt^2,mt^2,0,0)*gs^6 * (  - 112/3*i_*s13 - 52/3*i_*s12 - 4/
+         3*i_*s12*s13 + 48*i_*mt^2 + 4/3*den(s12 - 4*mt^2)*i_*s12^2 + 4/3*den(
+         s12 - 4*mt^2)*i_*s12^2*s13 - 64/3*den(s12)*i_*s13^2 + 64*den(s12)*i_*
+         mt^2*s13 - 128/3*den(s12)*i_*mt^4 )
+
+       + C0(mt^2,s12,mt^2,mt^2,0,0)*gs^6*ep * ( 16/3*i_*s13 + 28/3*i_*s12 + 4/
+         3*i_*s12*s13 - 16/3*i_*mt^2 - 4/3*den(s12 - 4*mt^2)*i_*s12^2 - 4/3*
+         den(s12 - 4*mt^2)*i_*s12^2*s13 )
+
+       + D0(0,0,mt^2,mt^2,s12, - s13 - s12 + 2*mt^2,0,0,0,mt^2)*gs^6 * (  - 
+         160/3*i_*s13^2 - 48*i_*s12*s13 - 16*i_*s12^2 + 96*i_*mt^2*s13 + 112/3
+         *i_*mt^2*s12 - 128/3*i_*mt^4 - 64/3*den(s12)*i_*s13^3 + 64*den(s12)*
+         i_*mt^2*s13^2 - 64*den(s12)*i_*mt^4*s13 + 64/3*den(s12)*i_*mt^6 )
+
+       + D0(0,0,mt^2,mt^2,s12, - s13 - s12 + 2*mt^2,0,0,0,mt^2)*gs^6*ep * ( 8*
+         i_*s12*s13 + 8*i_*s12^2 - 8*i_*mt^2*s12 ) ); 
+

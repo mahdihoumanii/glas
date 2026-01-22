@@ -5,14 +5,14 @@ AutoDeclare s s , x, t, u,ktsq, kt3;
 s z, lambda,dM; 
 CFun A0, B0, C0, D0, E0,mprop; 
 AutoDeclare Cfun topo; 
-Cfun rat; 
+Cfun rat,Rat; 
 S Pi, Nf; 
 Cfun aGamma,Vel;
 AutoDeclare s col;
 AutoDeclare i mu, nu, rho, sigma, alpha, beta, gamma, eta, a, ap ,b,bp, i, j, k, m, l,c, cc;
 Cfun eps,epsC,fpol, u, ub, v, vb,bos, ferB, fer, dTens, chain, epseps; 
 Fun U,UB,V,VB, Gamma;
-Cfun den, Gmn, deltas(symmetric), T,f(antisymmetric), SUND(symmetric), SUNFD(symmetric) , pair, fsub , SUNDsub;
+Cfun den, Gmn, deltas(symmetric), T,f(antisymmetric), SUND(symmetric), SUNFD(symmetric) , pair, fsub , SUNDsub,tempden;
 Cfun Log, Sqrt, Li2, PolyLog , HeavisideTheta, Abs,Sign ; 
 ******** QGraf Needed ********
 Cfun q, qin, qout, qB, qBin, qBout, top , topin, topout, topB, topBin, topBout, g, gin, gout, gh, ghB, Power; 

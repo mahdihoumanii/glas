@@ -1,0 +1,15 @@
+ output= '__tmp__qQtT__qQtT_0001__1l' ; 
+ 
+ style= 'mystyle.sty' ; 
+
+ model= 'qcd'; 
+
+ in= q[p1],qB[p2]; 
+
+ out= top[p3],topB[p4];
+
+ loops= 1; 
+
+ loop_momentum= lm; 
+
+ options= onshell,nosnails;
