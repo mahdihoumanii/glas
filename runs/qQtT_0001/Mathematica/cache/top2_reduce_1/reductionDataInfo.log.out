@@ -18,6 +18,6 @@ Number of Families = 1. Number of Sectors = 8.
 "7 subgraph-unique sectors found, 0 subgraph-mapped sectors found"
 "neqs = "325
 "number of integrals" -> {20, 5}
-"memory used -> "0."GB"
+"memory used -> "-0.0000152587890625"GB"
 "number of independent eqs." -> 58
-"average sample time for ibps (single core) ->0.000243333"
+"average sample time for ibps (single core) ->0.000269333"

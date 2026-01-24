@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import shlex
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -19,6 +19,7 @@ class AppState:
     form_exe: str = "form"
     model: str = "qcd"
     keep_temp: bool = False
+    verbose: bool = False
     gluon_refs: Optional[GluonRefs] = None
 
     def ensure_run(self) -> bool:
@@ -60,11 +61,19 @@ def parse_generate_args(arg: str) -> Tuple[str, Optional[int], Optional[str], bo
     return " ".join(process).strip(), jobs, run_name, resume
 
 
-def parse_mode_and_flags(arg: str, *, allow_dirac: bool = False) -> Tuple[Optional[str], Optional[int], bool]:
+def parse_mode_and_flags(arg: str, *, allow_dirac: bool = False) -> Tuple[Optional[str], Optional[int], bool, bool]:
+    """
+    Parse command arguments for mode and flags.
+
+    Returns:
+        (mode, jobs, dirac, verbose)
+    """
     toks = shlex.split(arg)
     mode: Optional[str] = None
     jobs: Optional[int] = None
     dirac = False
+    verbose = False
+    quiet = False
     i = 0
     while i < len(toks):
         t = toks[i]
@@ -78,24 +87,70 @@ def parse_mode_and_flags(arg: str, *, allow_dirac: bool = False) -> Tuple[Option
             dirac = True
             i += 1
             continue
+        if t == "--verbose":
+            verbose = True
+            i += 1
+            continue
+        if t == "--quiet":
+            quiet = True
+            i += 1
+            continue
         if not t.startswith("-") and mode is None:
             mode = t.lower()
         i += 1
-    return mode, jobs, dirac
+    # --quiet wins over --verbose
+    if quiet:
+        verbose = False
+    return mode, jobs, dirac, verbose
 
 
-def parse_pick_flag(arg: str) -> Tuple[str, bool]:
+def parse_simple_flags(arg: str) -> Tuple[str, bool]:
+    """
+    Parse simple command arguments for --verbose/--quiet flags.
+
+    Returns:
+        (remaining_arg, verbose)
+    """
+    toks = shlex.split(arg)
+    verbose = False
+    quiet = False
+    remaining = []
+    for t in toks:
+        if t == "--verbose":
+            verbose = True
+        elif t == "--quiet":
+            quiet = True
+        else:
+            remaining.append(t)
+    if quiet:
+        verbose = False
+    return " ".join(remaining), verbose
+
+
+def parse_pick_flag(arg: str) -> Tuple[str, bool, bool]:
+    """
+    Parse arguments with --pick and --verbose flags.
+
+    Returns:
+        (remaining_arg, pick, verbose)
+    """
     toks = shlex.split(arg)
     pick = False
+    verbose = False
+    quiet = False
     args = []
     for t in toks:
         if t == "--pick":
             pick = True
-            continue
-        if t.startswith("--"):
-            continue
-        args.append(t)
-    return " ".join(args), pick
+        elif t == "--verbose":
+            verbose = True
+        elif t == "--quiet":
+            quiet = True
+        elif not t.startswith("--"):
+            args.append(t)
+    if quiet:
+        verbose = False
+    return " ".join(args), pick, verbose
 
 
 def update_meta(run_dir: Path, updates: Dict[str, object]) -> Dict[str, object]:

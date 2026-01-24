@@ -1,0 +1,18 @@
+%  simplified QCD + Higgs (minimal, top Yukawa only)
+
+%  propagators
+  [ q,   qB,   - ; pfunct='fprop',  m='0'  ]
+  [ top, topB, - ; pfunct='fprop',  m='mt' ]
+  [ g,   g,    + ; pfunct='gprop',  m='0'  ]
+  [ gh,  ghB,  - ; pfunct='ghprop', m='0'  ]
+  [ h,   h,    + ; pfunct='sprop',  m='mH' ]
+
+%  vertices
+  [ qB,   q,   g ]
+  [ topB, top, g ]
+  [ g, g, g ]
+  [ g, g, g, g ]
+  [ ghB, gh, g ]
+
+  % Higgs Yukawa to top (the key one for ttH, H->tt, etc.)
+  [ topB, top, h ]

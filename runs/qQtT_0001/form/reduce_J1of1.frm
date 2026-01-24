@@ -29,13 +29,13 @@ id rat(x1?,x2?) = x1*den(x2);
 repeat id s12?{s12,s23,s34,s45,s15,s13,s14,mt}^-1 = den(s12);
     .sort
 Format;
-b GLI, ep,gs,PaVeFun;
+b GLI, ep,gs,PaVeFun, den;
     .sort 
 #write <Files/M0M1Reduced/d`i'x`j'.h> "l d`i'x`j' = (%E ); \n" d`i'x`j'
     .sort 
 id i_ = I;
 Format mathematica; 
-b GLI, ep,gs,PaVeFun;
+b GLI, ep,gs,PaVeFun, den;
     .sort
 #write <../Mathematica/Files/M0M1Reduced/d`i'x`j'.m> "d[`i',`j'] = (%E ); \n" d`i'x`j'
 

@@ -39,7 +39,11 @@ If[n == 4,
 
 Monitor[Do[Get["Files/IBP/IBP"<>ToString[i]<>".m"],{i, Length[Topologies]}],i]
 
-MastersBL = Table[IBP[i][[All,2]]// Cases[#, BL[__], Infinity]&// DeleteDuplicates,{i, Length[Topologies]}]// Flatten// DeleteDuplicates;
+MastersBL = Table[
+     If[IBP[i][[1]] === {}, {} // Cases[#, BL[__], Infinity] & // DeleteDuplicates,
+      IBP[i][[All, 2]] // Cases[#, BL[__], Infinity] & // 
+       DeleteDuplicates], {i, Length[Topologies]}] // Flatten // 
+DeleteDuplicates;
 
 PaVemis=Monitor[ Table[((MastersBL[[i]]/. BL[a_,{1,1,1,1,1}]:> GLI[a,{1,1,1,1,1}]/.  BL[a_,b_]:>TID[ FCLoopFromGLI[GLI[ToString[a],b],Topologies], {l},ToPaVe-> True]/I/Pi^2))/. mandrep, {i, Length[MastersBL]}],i];
 
@@ -62,7 +66,7 @@ Close[file];
 
 FormString[expr_] := 
   StringReplace[
-    ToString[expr /. BL[a_, b_] :> GLI[a, Sequence @@ b], 
+    ToString[expr /. BL[a_, b_] :> GLI[a, Sequence @@ b]/. GLI[a_, {b__}] :> GLI[a, Sequence @@ {b}], 
       InputForm], {"[" -> "(", "]" -> ")", WhitespaceCharacter -> ""}]
 
 If[! DirectoryQ["../form/Files"], 

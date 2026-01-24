@@ -1,5 +1,12 @@
+(* ::Package:: *)
+
+CloseKernels[];
+
 (* Set working directory - wolframscript provides $InputFileName *)
 (* When run from runs/{run}/Mathematica/, script is in this directory *)
+
+
+
 If[$FrontEnd === Null, $InputFileName, NotebookFileName[]] // DirectoryName // SetDirectory;
 
 (* ===== Normalize environment + PATH ===== *)
@@ -18,6 +25,7 @@ SetEnvironment["PATH" ->
     ":"
   ]
 ];
+
 
 (* -------- Load meta.json -------- *)
 meta = Import["../meta.json", "RawJSON"];
@@ -83,7 +91,7 @@ RestoreMass[res_, ints_] :=
 
   (* Replace s_ij -> s_ij/msq *)
   resSub = resList /. den[a_] :> 1/a /. {s12 -> s12/msq, s23 -> s23/msq, s34 -> s34/msq,
-                       s45 -> s45/msq, s15 -> s15/msq, s -> s/msq, t -> t/msq};
+                       s45 -> s45/msq, s15 -> s15/msq, s13 -> s13/msq, s14 -> s14/msq};
 
   (* Restore dimensions per term - let Fermat/Singular handle all simplification *)
   restored = Table[
@@ -134,13 +142,14 @@ Print[""];
 
 Monitor[
   Do[
+    Print["\nReducing integrals from topology ", topo, " out of ", Length[Topologies]];
     int[topo] = (Cases[glis, GLI[StringJoin["top", ToString[topo]], __], Infinity] // DeleteDuplicates);
     target[topo] = (Cases[glis, GLI[StringJoin["top", ToString[topo]], __], Infinity] // DeleteDuplicates) /. GLI[a_, b__] :> BL[ToExpression[a], b];
     family[topo] = ToExpression[StringJoin["top", ToString[topo]]];
     propagator[topo] = Topologies[[topo]][[2]] /. FeynAmpDenominator[StandardPropagatorDenominator[Momentum[p_, D], 0, -mt^2, {1, 1}]] :> {p^2 - msq} /. FeynAmpDenominator[StandardPropagatorDenominator[Momentum[p_, D], 0, 0, {1, 1}]] :> {p^2} // Flatten;
     BLFamilyDefine[family[topo], dimension, propagator[topo], loop, leg, conservation, replacement, topsector, numeric];
     res[topo] = BLReduce[target[topo], "BladeMode" -> Automatic, "DivideLevel" -> 1];
-    Print["restoring mass"];
+    Print["\n \n restoring mass"];
     restoredRes[topo] = RestoreMass[res[topo], int[topo]];
     (* Force full evaluation before writing to file *)
     evaluatedRes[topo] = restoredRes[topo] /. msq -> mt^2;
@@ -163,8 +172,8 @@ If[! DirectoryQ["../form/Files/IBP"],
 Do[
   Get["Files/IBP/IBP" <> ToString[i] <> ".m"];
   file = OpenWrite["../form/Files/IBP/IBP" <> ToString[i] <> ".h"];
-  Do[  WriteString[file, "id ", FormString[IBP[i][[j]][[1]]], " = ", 
-    FormString[IBP[i][[j]][[2]]], ";\n"], {j, Length[IBP[i]]}];
+  Do[If[IBP[i][[1]]==={},WriteString[file," "];,WriteString[file, "id ", FormString[IBP[i][[j]][[1]]], " = ", 
+    FormString[IBP[i][[j]][[2]]], ";\n"]], {j, Length[IBP[i]]}];
   Close[file];
   Clear[IBP];
   , {i, Length[Topologies]}];

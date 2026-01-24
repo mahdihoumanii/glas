@@ -32,7 +32,7 @@ def runs(state: AppState, arg: str) -> None:
 
 
 def use(state: AppState, arg: str) -> None:
-    arg_clean, pick = parse_pick_flag(arg)
+    arg_clean, pick, _ = parse_pick_flag(arg)
     target = arg_clean.strip()
     if not target:
         print("Usage: use <run>")

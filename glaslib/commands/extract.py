@@ -2,23 +2,32 @@ from __future__ import annotations
 
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-from glaslib.commands.common import AppState, update_meta
+from glaslib.commands.common import AppState, parse_simple_flags, update_meta
+from glaslib.core.logging import LOG_SUBDIR_EXTRACT, LOG_SUBDIR_IBP, LOG_SUBDIR_TOPOFORMAT, ensure_logs_dir
 from glaslib.core.parallel import run_jobs
+from glaslib.core.proc import get_project_python, run_streaming
 from glaslib.topoformat import prepare_topoformat_project
 
 
 def run(state: AppState, arg: str) -> None:
-    target = arg.strip().lower()
+    # Parse --verbose flag
+    target, verbose = parse_simple_flags(arg)
+    target = target.strip().lower()
+
+    # Also check state.verbose
+    verbose = verbose or state.verbose
+
     if not target:
-        print("Usage: extract topologies")
+        print("Usage: extract topologies [--verbose]")
         return
     if target != "topologies":
-        print("Usage: extract topologies")
+        print("Usage: extract topologies [--verbose]")
         return
     if not state.ensure_run():
         return
@@ -50,27 +59,8 @@ def run(state: AppState, arg: str) -> None:
 
     env = os.environ.copy()
 
-    cwd = Path.cwd()
-    repo_venv_python = repo_root / ".venv" / "bin" / "python"
-    repo_venv_python3 = repo_root / ".venv" / "bin" / "python3"
-    candidates = [
-        str(repo_venv_python),
-        str(repo_venv_python3),
-        env.get("GLAS_PYTHON", ""),
-        sys.executable,
-        str(cwd / ".venv" / "bin" / "python"),
-        str(cwd / ".venv" / "bin" / "python3"),
-        str(run_dir / ".venv" / "bin" / "python"),
-        str(run_dir / ".venv" / "bin" / "python3"),
-        str(run_mat_dir / ".venv" / "bin" / "python"),
-        str(run_mat_dir / ".venv" / "bin" / "python3"),
-    ]
-    if repo_venv_python.exists():
-        python_exe = str(repo_venv_python)
-    elif repo_venv_python3.exists():
-        python_exe = str(repo_venv_python3)
-    else:
-        python_exe = next((p for p in candidates if p and Path(p).exists()), "python3")
+    # Use project venv python
+    python_exe = str(get_project_python())
     env["GLAS_PYTHON"] = python_exe
 
     sympy_check = subprocess.run(
@@ -82,67 +72,74 @@ def run(state: AppState, arg: str) -> None:
     if sympy_check.returncode != 0:
         print("[extract] Error: selected python cannot import sympy (required by extend.py).")
         print(f"  python: {python_exe}")
-        print("  Install it with: python3 -m pip install sympy")
-        print("  Or set GLAS_PYTHON to your venv python (e.g. /path/to/.venv/bin/python).")
-        print(f"  repo_root: {repo_root}")
-        print(f"  repo .venv python exists: {repo_venv_python.exists()}")
-        print(f"  repo .venv python3 exists: {repo_venv_python3.exists()}")
-        print("  Checked:")
-        for p in candidates:
-            if p:
-                print(f"    {p}")
+        print("  Ensure GLAS runs with the Python environment that has sympy.")
         return
 
-    stage1_log = run_mat_dir / "extract_topologies_stage1.stdout.log"
-    stage1_err = run_mat_dir / "extract_topologies_stage1.stderr.log"
-    stage2_log = run_mat_dir / "extract_topologies_stage2.stdout.log"
-    stage2_err = run_mat_dir / "extract_topologies_stage2.stderr.log"
-    extend_out = run_mat_dir / "extract_topologies_extend.stdout.log"
-    extend_err = run_mat_dir / "extract_topologies_extend.stderr.log"
+    # Create logs directory using centralized constants
+    logs_dir = ensure_logs_dir(run_dir, LOG_SUBDIR_EXTRACT)
 
-    res1 = subprocess.run(
-        ["wolframscript", "-file", str(stage1_dst)],
-        cwd=str(run_mat_dir),
+    stage1_log = logs_dir / "stage1.log"
+    extend_log = logs_dir / "extend.log"
+    stage2_log = logs_dir / "stage2.log"
+
+    # Stage 1: Extract topologies
+    if verbose:
+        print("[mma stage1] Running extract_topologies_stage1.m...")
+    else:
+        print("[extract] Running stage1...")
+
+    rc1 = run_streaming(
+        cmd=["wolframscript", "-file", str(stage1_dst)],
+        cwd=run_mat_dir,
         env=env,
-        capture_output=True,
-        text=True,
+        log_path=stage1_log,
+        prefix="mma stage1",
+        verbose=verbose,
     )
-    stage1_log.write_text(res1.stdout or "", encoding="utf-8")
-    stage1_err.write_text(res1.stderr or "", encoding="utf-8")
-    if res1.returncode != 0:
-        print(f"[extract] Stage1 failed (code={res1.returncode}).")
-        print(f"  stdout: {stage1_log}")
-        print(f"  stderr: {stage1_err}")
+    if rc1 != 0:
+        print(f"[extract] Stage1 failed (code={rc1}). See {stage1_log}")
         return
 
-    ext_res = subprocess.run(
-        [python_exe, str(extend_dst)],
-        cwd=str(run_mat_dir),
+    if not verbose:
+        print(f"[extract] Stage1 OK (log: {stage1_log})")
+
+    # Stage 2: Extend topologies with Python
+    if verbose:
+        print("[py extend] Running extend.py...")
+    else:
+        print("[extract] Running extend.py...")
+
+    rc_ext = run_streaming(
+        cmd=[python_exe, str(extend_dst)],
+        cwd=run_mat_dir,
         env=env,
-        capture_output=True,
-        text=True,
+        log_path=extend_log,
+        prefix="py extend",
+        verbose=verbose,
     )
-    extend_out.write_text(ext_res.stdout or "", encoding="utf-8")
-    extend_err.write_text(ext_res.stderr or "", encoding="utf-8")
-    if ext_res.returncode != 0:
-        print(f"[extract] extend.py failed (code={ext_res.returncode}).")
-        print(f"  stdout: {extend_out}")
-        print(f"  stderr: {extend_err}")
+    if rc_ext != 0:
+        print(f"[extract] extend.py failed (code={rc_ext}). See {extend_log}")
         return
 
-    res2 = subprocess.run(
-        ["wolframscript", "-file", str(stage2_dst)],
-        cwd=str(run_mat_dir),
+    if not verbose:
+        print(f"[extract] extend.py OK (log: {extend_log})")
+
+    # Stage 2b: Topology mapping with Mathematica
+    if verbose:
+        print("[mma stage2] Running extract_topologies_stage2.m...")
+    else:
+        print("[extract] Running stage2...")
+
+    rc2 = run_streaming(
+        cmd=["wolframscript", "-file", str(stage2_dst)],
+        cwd=run_mat_dir,
         env=env,
-        capture_output=True,
-        text=True,
+        log_path=stage2_log,
+        prefix="mma stage2",
+        verbose=verbose,
     )
-    stage2_log.write_text(res2.stdout or "", encoding="utf-8")
-    stage2_err.write_text(res2.stderr or "", encoding="utf-8")
-    if res2.returncode != 0:
-        print(f"[extract] Stage2 failed (code={res2.returncode}).")
-        print(f"  stdout: {stage2_log}")
-        print(f"  stderr: {stage2_err}")
+    if rc2 != 0:
+        print(f"[extract] Stage2 failed (code={rc2}). See {stage2_log}")
         return
 
     expected = [
@@ -154,13 +151,11 @@ def run(state: AppState, arg: str) -> None:
         print("[extract] Completed but outputs are missing:")
         for p in missing:
             print(f"  missing: {p}")
-        print(f"  stage1 stdout: {stage1_log}")
-        print(f"  stage1 stderr: {stage1_err}")
-        print(f"  extend stdout: {extend_out}")
-        print(f"  extend stderr: {extend_err}")
-        print(f"  stage2 stdout: {stage2_log}")
-        print(f"  stage2 stderr: {stage2_err}")
+        print(f"  Check logs in: {logs_dir}")
         return
+
+    if not verbose:
+        print(f"[extract] Stage2 OK (log: {stage2_log})")
 
     print("[extract] OK -> Files/integrals.m, ../form/Files/intrule.h")
 
@@ -179,12 +174,19 @@ def run(state: AppState, arg: str) -> None:
         print("[extract] Warning: lenTopos.txt not found; ntop not recorded. Run extract_topologies_stage2.m output check.")
 
     print("[extract] Stage 3: Topology formatting with FORM (ToTopos)...")
-    _run_topos_extraction(state, run_dir, repo_root)
+    _run_topos_extraction(state, run_dir, repo_root, verbose=verbose)
 
 
 def ibp(state: AppState, arg: str) -> None:
-    if arg.strip():
-        print("Usage: ibp")
+    # Parse --verbose flag
+    remainder, verbose = parse_simple_flags(arg)
+    remainder = remainder.strip()
+
+    # Also check state.verbose
+    verbose = verbose or state.verbose
+
+    if remainder:
+        print("Usage: ibp [--verbose]")
         return
     if not state.ensure_run():
         return
@@ -213,86 +215,93 @@ def ibp(state: AppState, arg: str) -> None:
 
     env = os.environ.copy()
 
-    mandibp_log = run_mat_dir / "mandIBP.stdout.log"
-    mandibp_err = run_mat_dir / "mandIBP.stderr.log"
-    ibp_log = run_mat_dir / "IBP.stdout.log"
-    ibp_err = run_mat_dir / "IBP.stderr.log"
+    # Create logs directory for ibp using centralized constants
+    logs_dir = ensure_logs_dir(run_dir, LOG_SUBDIR_IBP)
 
-    print("[ibp] Running mandIBP.m...")
-    res1 = subprocess.run(
-        ["wolframscript", "-file", str(mandibp_dst)],
-        cwd=str(run_mat_dir),
+    mandibp_log = logs_dir / "mandIBP.log"
+    ibp_log_file = logs_dir / "IBP.log"
+    symrel_log = logs_dir / "SymmetryRelations.log"
+
+    # Stage 1: mandIBP
+    if verbose:
+        print("[mma mandIBP] Running mandIBP.m...")
+    else:
+        print("[ibp] Running mandIBP.m...")
+
+    rc1 = run_streaming(
+        cmd=["wolframscript", "-file", str(mandibp_dst)],
+        cwd=run_mat_dir,
         env=env,
-        capture_output=True,
-        text=True,
+        log_path=mandibp_log,
+        prefix="mma mandIBP",
+        verbose=verbose,
     )
-    mandibp_log.write_text(res1.stdout or "", encoding="utf-8")
-    mandibp_err.write_text(res1.stderr or "", encoding="utf-8")
-    if res1.returncode != 0:
-        print(f"[ibp] mandIBP.m failed (code={res1.returncode}).")
-        print(f"  stdout: {mandibp_log}")
-        print(f"  stderr: {mandibp_err}")
+    if rc1 != 0:
+        print(f"[ibp] mandIBP.m failed (code={rc1}). See {mandibp_log}")
         return
 
     mands_file = run_mat_dir / "Files" / "mands.m"
     if not mands_file.exists():
         print(f"[ibp] mandIBP.m completed but Files/mands.m not created.")
-        print(f"  stdout: {mandibp_log}")
-        print(f"  stderr: {mandibp_err}")
+        print(f"  See log: {mandibp_log}")
         return
 
-    print("[ibp] mandIBP.m OK -> Files/mands.m")
-    print("[ibp] Running IBP.m...")
-    res2 = subprocess.run(
-        ["wolframscript", "-file", str(ibp_dst)],
-        cwd=str(run_mat_dir),
+    if not verbose:
+        print(f"[ibp] mandIBP.m OK -> Files/mands.m (log: {mandibp_log})")
+
+    # Stage 2: IBP.m
+    if verbose:
+        print("[mma IBP] Running IBP.m...")
+    else:
+        print("[ibp] Running IBP.m...")
+
+    rc2 = run_streaming(
+        cmd=["wolframscript", "-file", str(ibp_dst)],
+        cwd=run_mat_dir,
         env=env,
-        capture_output=True,
-        text=True,
+        log_path=ibp_log_file,
+        prefix="mma IBP",
+        verbose=verbose,
     )
-    ibp_log.write_text(res2.stdout or "", encoding="utf-8")
-    ibp_err.write_text(res2.stderr or "", encoding="utf-8")
-    if res2.returncode != 0:
-        print(f"[ibp] IBP.m failed (code={res2.returncode}).")
-        print(f"  stdout: {ibp_log}")
-        print(f"  stderr: {ibp_err}")
+    if rc2 != 0:
+        print(f"[ibp] IBP.m failed (code={rc2}). See {ibp_log_file}")
         return
 
     ibp_dir = run_mat_dir / "Files" / "IBP"
     if not ibp_dir.exists() or not any(ibp_dir.iterdir()):
         print(f"[ibp] IBP.m completed but Files/IBP/ is empty or missing.")
-        print(f"  stdout: {ibp_log}")
-        print(f"  stderr: {ibp_err}")
+        print(f"  See log: {ibp_log_file}")
         return
 
-    print(f"[ibp] OK -> Files/IBP/ ({len(list(ibp_dir.glob('*.m')))} topology files)")
+    if not verbose:
+        print(f"[ibp] IBP.m OK -> Files/IBP/ ({len(list(ibp_dir.glob('*.m')))} topology files) (log: {ibp_log_file})")
 
-    print("[ibp] Running SymmetryRelations.m...")
-    symrel_log = run_mat_dir / "SymmetryRelations.stdout.log"
-    symrel_err = run_mat_dir / "SymmetryRelations.stderr.log"
-    res3 = subprocess.run(
-        ["wolframscript", "-file", str(symrel_dst)],
-        cwd=str(run_mat_dir),
+    # Stage 3: SymmetryRelations.m
+    if verbose:
+        print("[mma SymRel] Running SymmetryRelations.m...")
+    else:
+        print("[ibp] Running SymmetryRelations.m...")
+
+    rc3 = run_streaming(
+        cmd=["wolframscript", "-file", str(symrel_dst)],
+        cwd=run_mat_dir,
         env=env,
-        capture_output=True,
-        text=True,
+        log_path=symrel_log,
+        prefix="mma SymRel",
+        verbose=verbose,
     )
-    symrel_log.write_text(res3.stdout or "", encoding="utf-8")
-    symrel_err.write_text(res3.stderr or "", encoding="utf-8")
-    if res3.returncode != 0:
-        print(f"[ibp] SymmetryRelations.m failed (code={res3.returncode}).")
-        print(f"  stdout: {symrel_log}")
-        print(f"  stderr: {symrel_err}")
+    if rc3 != 0:
+        print(f"[ibp] SymmetryRelations.m failed (code={rc3}). See {symrel_log}")
         return
 
     symrel_file = run_mat_dir / "Files" / "SymmetryRelations.m"
     if not symrel_file.exists():
         print(f"[ibp] SymmetryRelations.m completed but Files/SymmetryRelations.m not created.")
-        print(f"  stdout: {symrel_log}")
-        print(f"  stderr: {symrel_err}")
+        print(f"  See log: {symrel_log}")
         return
 
-    print(f"[ibp] OK -> Files/SymmetryRelations.m")
+    if not verbose:
+        print(f"[ibp] SymmetryRelations.m OK -> Files/SymmetryRelations.m (log: {symrel_log})")
 
     # Capture nmis (number of master integrals) from SymmetryRelations.m output
     len_masters_path = run_mat_dir / "Files" / "lenMasters.txt"
@@ -316,7 +325,7 @@ def ibp(state: AppState, arg: str) -> None:
         print("[ibp] Also generated ../form/Files/MastersToSym.h (master integral substitution rules)")
 
 
-def _run_topos_extraction(state: AppState, run_dir: Path, repo_root: Path) -> None:
+def _run_topos_extraction(state: AppState, run_dir: Path, repo_root: Path, verbose: bool = False) -> None:
     """
     Stage 3: Run ToTopos FORM driver in parallel to format topology integrals.
     
@@ -387,9 +396,9 @@ def _run_topos_extraction(state: AppState, run_dir: Path, repo_root: Path) -> No
         for k in sorted(drivers.keys())
     ]
 
-    if not run_jobs(form_exe, jobs_list, jobs_effective):
+    if not run_jobs(form_exe, jobs_list, jobs_effective, verbose=verbose, run_dir=run_dir, log_subdir=LOG_SUBDIR_TOPOFORMAT):
         print(f"[extract] ToTopos failed on one or more jobs.")
-        print(f"  Check logs in: {form_dir}")
+        print(f"  Check logs in: {run_dir / 'logs' / LOG_SUBDIR_TOPOFORMAT}")
         return
 
     m0m1top_form = form_dir / "Files" / "M0M1top"

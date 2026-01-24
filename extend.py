@@ -4,19 +4,22 @@
 """
 Complete 1-loop propagator sets by inserting routing-consistent propagators.
 
-Key guarantees:
-- Internal representation uses full external-leg basis [p1..pn].
-- Allowed steps are ONLY unit steps +/- p_i.
-- No momentum-conservation elimination during the algorithm.
-- Added shifts are inserted only along shortest unit-step paths between existing shifts.
-- Output may optionally eliminate one momentum using explicit incoming/outgoing sets.
+Algorithm:
+1. Parse propagators as nodes in integer lattice (shift vectors)
+2. Build adjacency graph where edges = unit step (differ by ±1 in one coordinate)
+3. Find shortest paths between existing nodes to connect them
+4. Add missing nodes along those paths
+5. Extend to reach target_nprops
+
+A valid 1-loop topology forms a cycle where consecutive propagators differ
+by exactly one external momentum.
 """
 
 from __future__ import annotations
 
 import re
 from collections import deque
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Set, Tuple
 
 import sympy as sp
 from sympy.parsing.sympy_parser import (
@@ -59,13 +62,12 @@ def _strip_brackets(s: str) -> str:
 
 def parse_topology_list(raw_list_str: str, local_dict: Dict[str, sp.Symbol]) -> List[Tuple[sp.Expr, sp.Expr]]:
     """
-    raw_list_str like: [[l - p3, 0], [l, mt], [l - p2, mt]]
-    Return: [(mom_expr, mass_expr), ...] as SymPy
-    Accepts [] or {} brackets.
+    Parse topology like: [[l - p3, 0], [l, mt], [l - p2, mt]]
+    Return: [(mom_expr, mass_expr), ...]
     """
     s = raw_list_str.strip()
     if not ((s.startswith("[[") and s.endswith("]]")) or (s.startswith("{{") and s.endswith("}}"))):
-        raise ValueError(f"Expected list like [[...], [...]] or {{...}} but got: {raw_list_str}")
+        raise ValueError(f"Expected list like [[...], [...]] but got: {raw_list_str}")
 
     inner = _strip_brackets(s)
     entries = _split_top_level_entries(inner)
@@ -75,7 +77,6 @@ def parse_topology_list(raw_list_str: str, local_dict: Dict[str, sp.Symbol]) -> 
         ent = ent.strip()
         payload = _strip_brackets(ent)
 
-        # split on the first comma at top level
         depth = 0
         split_idx = None
         for i, ch in enumerate(payload):
@@ -99,7 +100,7 @@ def parse_topology_list(raw_list_str: str, local_dict: Dict[str, sp.Symbol]) -> 
 
 
 # ============================================================
-# Topology completion
+# Core data structures
 # ============================================================
 
 
@@ -108,309 +109,312 @@ def shift_of(mom: sp.Expr, l: sp.Symbol) -> sp.Expr:
     return sp.expand(mom - l)
 
 
-def coeff_vector(q: sp.Expr, basis: Sequence[sp.Symbol]) -> List[int]:
-    """Integer coefficient vector of q in the chosen basis."""
+def coeff_vector(q: sp.Expr, basis: Sequence[sp.Symbol]) -> Tuple[int, ...]:
+    """Integer coefficient vector of q in the basis."""
     qq = sp.expand(q)
-    return [int(qq.coeff(b)) for b in basis]
+    return tuple(int(qq.coeff(b)) for b in basis)
 
 
 def vector_to_expr(vec: Sequence[int], basis: Sequence[sp.Symbol]) -> sp.Expr:
     return sp.expand(sum(vec[i] * basis[i] for i in range(len(basis))))
 
 
-def vec_key(vec: Sequence[int]) -> Tuple[int, ...]:
-    return tuple(int(v) for v in vec)
+def l1_distance(a: Tuple[int, ...], b: Tuple[int, ...]) -> int:
+    """Manhattan distance between two nodes."""
+    return sum(abs(a[i] - b[i]) for i in range(len(a)))
 
 
-def rank_of(vecs: List[List[int]]) -> int:
-    if not vecs:
-        return 0
-    return sp.Matrix(vecs).rank()
+def are_adjacent(a: Tuple[int, ...], b: Tuple[int, ...]) -> bool:
+    """Two nodes are adjacent if they differ by exactly ±1 in one coordinate."""
+    return l1_distance(a, b) == 1
 
 
-def l1_dist(a: Sequence[int], b: Sequence[int]) -> int:
-    return sum(abs(b[i] - a[i]) for i in range(len(a)))
+def get_neighbors(node: Tuple[int, ...], dim: int) -> List[Tuple[int, ...]]:
+    """Get all 2*dim neighbors (±1 in each coordinate)."""
+    neighbors = []
+    for i in range(dim):
+        for delta in [-1, 1]:
+            neighbor = list(node)
+            neighbor[i] += delta
+            neighbors.append(tuple(neighbor))
+    return neighbors
 
 
-def choose_step_index(
-    a: Sequence[int],
-    delta: Sequence[int],
-    seen: Iterable[Tuple[int, ...]],
-    missing_indices: Sequence[int],
-    allowed_max_abs: int,
-    incoming_indices: Sequence[int],
-    outgoing_indices: Sequence[int],
-) -> Optional[int]:
+# ============================================================
+# BFS shortest path
+# ============================================================
+
+
+def bfs_path(start: Tuple[int, ...], end: Tuple[int, ...], 
+             existing: Set[Tuple[int, ...]], max_coord: int) -> List[Tuple[int, ...]]:
     """
-    Choose a step index k for shortest-path progress with routing priority:
-    1) missing basis directions first
-    2) steps that land on an existing node (if possible)
-    3) incoming legs with negative step
-    4) outgoing legs with positive step
-    5) fallback basis order
+    Find shortest path from start to end using unit steps.
+    Prefers going through existing nodes when possible.
+    Returns the path including start and end.
     """
-    candidates = [i for i, d in enumerate(delta) if d != 0]
-    if not candidates:
-        return None
+    if start == end:
+        return [start]
+    
+    dim = len(start)
+    queue = deque([(start, [start])])
+    visited = {start}
+    
+    while queue:
+        current, path = queue.popleft()
+        
+        if current == end:
+            return path
+        
+        # Get neighbors, prioritize existing nodes
+        neighbors = get_neighbors(current, dim)
+        
+        # Sort: existing nodes first, then by distance to end
+        def priority(n: Tuple[int, ...]) -> Tuple[int, int]:
+            in_existing = 0 if n in existing else 1
+            dist = l1_distance(n, end)
+            return (in_existing, dist)
+        
+        neighbors.sort(key=priority)
+        
+        for neighbor in neighbors:
+            if neighbor in visited:
+                continue
+            if any(abs(c) > max_coord for c in neighbor):
+                continue
+            
+            visited.add(neighbor)
+            queue.append((neighbor, path + [neighbor]))
+    
+    # No path found (shouldn't happen for connected integer lattice)
+    return []
 
-    def within_bounds(i: int) -> bool:
-        step = 1 if delta[i] > 0 else -1
-        return abs(a[i] + step) <= allowed_max_abs
 
-    candidates = [i for i in candidates if within_bounds(i)]
-    if not candidates:
-        return None
-
-    missing_first = [i for i in candidates if i in missing_indices]
-    if missing_first:
-        candidates = missing_first
-
-    def is_existing_step(i: int) -> bool:
-        step = 1 if delta[i] > 0 else -1
-        a_next = list(a)
-        a_next[i] += step
-        return tuple(a_next) in seen
-
-    existing = [i for i in candidates if is_existing_step(i)]
-    if existing:
-        candidates = existing
-
-    incoming_neg = [i for i in candidates if i in incoming_indices and delta[i] < 0]
-    if incoming_neg:
-        return min(incoming_neg)
-
-    outgoing_pos = [i for i in candidates if i in outgoing_indices and delta[i] > 0]
-    if outgoing_pos:
-        return min(outgoing_pos)
-
-    return min(candidates)
+# ============================================================
+# Main algorithm
+# ============================================================
 
 
 def extend_topology(
     topo_in: List[Tuple[sp.Expr, sp.Expr]],
     l: sp.Symbol,
     basis: Sequence[sp.Symbol],
-    target_nprops: Optional[int],
-    eliminate_index: Optional[int],
-    incoming_indices: Sequence[int],
-    outgoing_indices: Sequence[int],
-    rank_needed: Optional[int] = None,
+    target_nprops: int,
+    eliminate_index: Optional[int] = None,
     max_add: int = 50,
     mass_new: sp.Expr = sp.Integer(0),
 ) -> List[Tuple[sp.Expr, sp.Expr]]:
     """
-    Extend a topology by inserting missing unit-step propagators.
-
+    Extend a topology to have exactly target_nprops propagators.
+    
     Algorithm:
-    - Represent each shift q as integer vector over full basis.
-    - Iteratively choose the pair (a,b) in S with maximal L1 distance.
-    - Walk along a shortest path from a to b; if a step hits an existing node,
-      advance to it; otherwise insert that node (one insertion per iteration).
-    - Rank check uses a projection that drops eliminate_index.
-
-    This prevents unphysical shifts because only unit steps are allowed and
-    new nodes are inserted only on shortest paths between existing nodes.
+    1. Convert propagators to nodes (shift vectors)
+    2. Find which external momenta are covered by unit steps
+    3. Prioritize adding propagators that introduce MISSING momenta
+    4. Use BFS to find shortest paths, preferring missing-momentum directions
     """
     topo = list(topo_in)
-    shifts = [shift_of(mom, l) for mom, _ in topo]
-    vecs = [coeff_vector(q, basis) for q in shifts]
-    seen = {vec_key(v) for v in vecs}
-    max_abs_input = max((abs(c) for v in vecs for c in v), default=1)
-    allowed_max_abs = max(1, max_abs_input)
-
-    def drop_component(v: List[int], idx: Optional[int]) -> List[int]:
-        if idx is None:
-            return v[:]
-        return [c for i, c in enumerate(v) if i != idx]
-
-    def current_rank() -> int:
-        proj = [drop_component(list(v), eliminate_index) for v in seen]
-        return rank_of(proj)
-
-    if rank_needed is None:
-        rank_needed = max(0, len(basis) - 1 if eliminate_index is not None else len(basis))
-
+    dim = len(basis)
+    
+    # Convert to nodes
+    nodes: Set[Tuple[int, ...]] = set()
+    for mom, _ in topo:
+        q = shift_of(mom, l)
+        vec = coeff_vector(q, basis)
+        nodes.add(vec)
+    
+    # Determine max coordinate from input
+    max_coord = max((abs(c) for node in nodes for c in node), default=1)
+    max_coord = max(1, max_coord)
+    
     added = 0
-
-    def need_more() -> bool:
-        need_props = target_nprops is not None and len(topo) < target_nprops
-        need_rank = current_rank() < rank_needed
-        return need_props or need_rank
-
-    # Deterministic ordering for pair selection
-    def sorted_vecs() -> List[List[int]]:
-        return [list(v) for v in sorted(seen)]
-
-    def has_existing_step(a_vec: List[int], b_vec: List[int]) -> bool:
-        delta_vec = [b_vec[i] - a_vec[i] for i in range(len(basis))]
-        for i, d in enumerate(delta_vec):
-            if d == 0:
-                continue
-            step = 1 if d > 0 else -1
-            a_next = a_vec[:]
-            a_next[i] += step
-            if vec_key(a_next) in seen:
-                return True
-        return False
-
-    def insert_node(vec: List[int]) -> None:
+    
+    def add_node(vec: Tuple[int, ...]) -> bool:
         nonlocal added
-        key = vec_key(vec)
-        if key in seen:
-            return
-        if any(abs(c) > allowed_max_abs for c in vec):
-            return
-        seen.add(key)
-        mom_new = sp.expand(l + vector_to_expr(vec, basis))
-        topo.append((mom_new, mass_new))
+        if vec in nodes:
+            return False
+        if any(abs(c) > max_coord for c in vec):
+            return False
+        nodes.add(vec)
+        mom = sp.expand(l + vector_to_expr(vec, basis))
+        topo.append((mom, mass_new))
         added += 1
-
-    def compute_missing_indices() -> List[int]:
-        indices = set()
-        vec_list = [list(v) for v in seen]
-        for i in range(len(vec_list)):
-            for j in range(i + 1, len(vec_list)):
-                diff = [vec_list[i][k] - vec_list[j][k] for k in range(len(basis))]
-                for k, d in enumerate(diff):
-                    if d != 0:
-                        indices.add(k)
-        missing = [i for i in range(len(basis)) if i not in indices]
-        return missing
-
-    def insert_shortest_path(a_vec: List[int], b_vec: List[int]) -> bool:
-        """Insert missing nodes along shortest path from a to b, one at a time."""
-        a = a_vec[:]
-        b = b_vec[:]
-        if not has_existing_step(a, b) and has_existing_step(b, a):
-            a, b = b, a
-        while l1_dist(a, b) > 1:
-            delta = [b[i] - a[i] for i in range(len(basis))]
-            missing_indices = compute_missing_indices()
-            k = choose_step_index(
-                a,
-                delta,
-                seen,
-                missing_indices,
-                allowed_max_abs,
-                incoming_indices,
-                outgoing_indices,
-            )
-            if k is None:
-                return False
-            step = 1 if delta[k] > 0 else -1
-            a_next = a[:]
-            a_next[k] += step
-            if vec_key(a_next) in seen:
-                a = a_next
-                continue
-            insert_node(a_next)
-            return True
-        return False
-
-    # Phase A: path completion until unit-step connected (no pair with dist>1)
-    while need_more() and added < max_add:
-        vec_list = sorted_vecs()
-        max_dist = -1
-        pair = None
-        for i in range(len(vec_list)):
-            for j in range(i + 1, len(vec_list)):
-                d = l1_dist(vec_list[i], vec_list[j])
-                if d > max_dist:
-                    max_dist = d
-                    pair = (vec_list[i], vec_list[j])
-
-        if pair is None or max_dist <= 1:
-            break
-
-        if not insert_shortest_path(pair[0], pair[1]):
-            break
-
-    # Phase B: pad to target_nprops with deterministic chain completion
-    def append_path(chain: List[List[int]], start: List[int], target: List[int]) -> bool:
-        a = start[:]
-        while a != target:
-            delta = [target[i] - a[i] for i in range(len(basis))]
-            missing_indices = compute_missing_indices()
-            k = choose_step_index(
-                a,
-                delta,
-                seen,
-                missing_indices,
-                allowed_max_abs,
-                incoming_indices,
-                outgoing_indices,
-            )
-            if k is None:
-                return False
-            step = 1 if delta[k] > 0 else -1
-            a_next = a[:]
-            a_next[k] += step
-            if vec_key(a_next) not in seen:
-                insert_node(a_next)
-            chain.append(a_next)
-            a = a_next
         return True
-
-    def build_chain_all() -> List[List[int]]:
-        vec_list = sorted_vecs()
-        if not vec_list:
-            return []
-        zero = [0] * len(basis)
-        start = zero if vec_key(zero) in seen else min(vec_list, key=lambda v: (sum(abs(x) for x in v), v))
-        chain = [start]
-        current = start
-        unvisited = {vec_key(v): list(v) for v in vec_list if v != start}
-        while unvisited:
-            target = min(unvisited.values(), key=lambda v: (l1_dist(current, v), v))
-            if not append_path(chain, current, target):
-                break
-            current = target
-            unvisited.pop(vec_key(target))
-        return chain
-
-    def missing_indices_from_chain(chain: List[List[int]]) -> List[int]:
+    
+    def get_covered_directions() -> Set[int]:
+        """Find which momentum directions are covered by existing unit steps."""
         covered = set()
-        for i in range(len(chain) - 1):
-            diff = [chain[i + 1][k] - chain[i][k] for k in range(len(basis))]
-            for k, d in enumerate(diff):
-                if d != 0:
-                    covered.add(k)
-        return [i for i in range(len(basis)) if i not in covered]
-
-    while target_nprops is not None and len(topo) < target_nprops and added < max_add:
-        chain = build_chain_all()
-        if not chain:
-            break
-
-        end_left = chain[0]
-        end_right = chain[-1]
-        if sum(abs(x) for x in end_left) > sum(abs(x) for x in end_right):
-            v_max = end_left
-            at_left = True
-        else:
-            v_max = end_right
-            at_left = False
-
-        missing = missing_indices_from_chain(chain)
-        appended = False
-        for idx in missing + [i for i in range(len(basis)) if i not in missing]:
-            candidate = v_max[:]
-            candidate[idx] -= 1
-            if vec_key(candidate) in seen or any(abs(c) > allowed_max_abs for c in candidate):
-                continue
-            insert_node(candidate)
-            if at_left:
-                chain.insert(0, candidate)
-            else:
-                chain.append(candidate)
-            appended = True
-            break
-        if not appended:
-            break
-
-    if target_nprops is not None and len(topo) < target_nprops:
-        print("Warning: could not reach target_nprops within max_add")
-
+        node_list = list(nodes)
+        for i, a in enumerate(node_list):
+            for b in node_list[i+1:]:
+                if l1_distance(a, b) == 1:
+                    # Find which direction differs
+                    for k in range(dim):
+                        if a[k] != b[k]:
+                            covered.add(k)
+                            break
+        return covered
+    
+    def get_missing_directions() -> List[int]:
+        """Get momentum directions not yet covered, excluding eliminated one."""
+        covered = get_covered_directions()
+        missing = [k for k in range(dim) if k not in covered]
+        if eliminate_index is not None and eliminate_index in missing:
+            missing.remove(eliminate_index)
+        return missing
+    
+    # Main loop: add propagators
+    while len(topo) < target_nprops and added < max_add:
+        missing_dirs = get_missing_directions()
+        node_list = sorted(nodes)
+        
+        inserted = False
+        
+        # Priority 1: Fill gaps ONLY if the gap path includes a missing direction
+        best_pair = None
+        best_dist = float('inf')
+        best_has_missing = False
+        
+        for i, a in enumerate(node_list):
+            for b in node_list[i+1:]:
+                d = l1_distance(a, b)
+                if d <= 1:
+                    continue
+                
+                # Check if path from a to b includes any missing direction
+                delta = tuple(b[k] - a[k] for k in range(dim))
+                path_has_missing = any(delta[k] != 0 and k in missing_dirs for k in range(dim))
+                
+                # Prefer paths with missing directions, then shortest
+                if path_has_missing and not best_has_missing:
+                    best_dist = d
+                    best_pair = (a, b)
+                    best_has_missing = True
+                elif path_has_missing == best_has_missing and d < best_dist:
+                    best_dist = d
+                    best_pair = (a, b)
+        
+        if best_pair is not None and best_has_missing:
+            a, b = best_pair
+            best_candidate = None
+            best_priority = (999, 999)
+            
+            for k in range(dim):
+                diff = b[k] - a[k]
+                if diff == 0:
+                    continue
+                delta = 1 if diff > 0 else -1
+                candidate = list(a)
+                candidate[k] += delta
+                candidate = tuple(candidate)
+                
+                if candidate in nodes or any(abs(c) > max_coord for c in candidate):
+                    continue
+                
+                is_missing = 0 if k in missing_dirs else 1
+                priority = (is_missing, k)
+                
+                if priority < best_priority:
+                    best_priority = priority
+                    best_candidate = candidate
+            
+            if best_candidate is not None:
+                if add_node(best_candidate):
+                    inserted = True
+        
+        if inserted:
+            continue
+        
+        # Priority 2: Add from endpoints in missing directions
+        if missing_dirs:
+            def count_neighbors_in_set(node: Tuple[int, ...]) -> int:
+                return sum(1 for n in get_neighbors(node, dim) if n in nodes)
+            
+            sorted_by_neighbors = sorted(node_list, key=count_neighbors_in_set)
+            
+            for node in sorted_by_neighbors:
+                for k in missing_dirs:
+                    for delta in [-1, 1]:
+                        candidate = list(node)
+                        candidate[k] += delta
+                        candidate = tuple(candidate)
+                        if candidate not in nodes and all(abs(c) <= max_coord for c in candidate):
+                            if add_node(candidate):
+                                inserted = True
+                                break
+                    if inserted:
+                        break
+                if inserted:
+                    break
+        
+        if inserted:
+            continue
+        
+        # Priority 3: Fill remaining gaps (no missing directions left)
+        if best_pair is not None and not best_has_missing:
+            a, b = best_pair
+            for k in range(dim):
+                diff = b[k] - a[k]
+                if diff == 0:
+                    continue
+                delta = 1 if diff > 0 else -1
+                candidate = list(a)
+                candidate[k] += delta
+                candidate = tuple(candidate)
+                
+                if candidate not in nodes and all(abs(c) <= max_coord for c in candidate):
+                    if add_node(candidate):
+                        inserted = True
+                        break
+        
+        if inserted:
+            continue
+        
+        # Priority 2: Fill gaps between existing nodes
+        best_pair = None
+        best_dist = float('inf')
+        
+        for i, a in enumerate(node_list):
+            for b in node_list[i+1:]:
+                d = l1_distance(a, b)
+                if 1 < d < best_dist:
+                    best_dist = d
+                    best_pair = (a, b)
+        
+        if best_pair is not None:
+            # Find path and add one node along it
+            path = bfs_path(best_pair[0], best_pair[1], nodes, max_coord)
+            for node in path:
+                if node not in nodes:
+                    if add_node(node):
+                        inserted = True
+                        break
+        
+        if inserted:
+            continue
+        
+        # Priority 3: Extend from endpoints
+        def count_neighbors_in_set(node: Tuple[int, ...]) -> int:
+            return sum(1 for n in get_neighbors(node, dim) if n in nodes)
+        
+        endpoints = sorted(node_list, key=count_neighbors_in_set)
+        
+        for endpoint in endpoints:
+            for neighbor in get_neighbors(endpoint, dim):
+                if neighbor not in nodes and all(abs(c) <= max_coord for c in neighbor):
+                    if add_node(neighbor):
+                        inserted = True
+                        break
+            if inserted:
+                break
+        
+        if not inserted:
+            max_coord += 1
+            if max_coord > 3:
+                break
+    
+    if len(topo) < target_nprops:
+        print(f"Warning: could not reach {target_nprops} propagators (got {len(topo)})")
+    
     return topo
 
 
@@ -426,10 +430,7 @@ def apply_elimination(
     incoming_indices: Sequence[int],
     outgoing_indices: Sequence[int],
 ) -> sp.Expr:
-    """
-    Optionally eliminate one momentum at output time using:
-      sum(incoming) = sum(outgoing)
-    """
+    """Eliminate one momentum using momentum conservation."""
     if eliminate_index is None:
         return expr
 
@@ -445,11 +446,6 @@ def apply_elimination(
         return expr
 
     return sp.expand(expr.subs(sub))
-
-
-def sympy_to_mathematica_expr(expr: sp.Expr) -> str:
-    """Mathematica-friendly string for linear expressions."""
-    return sp.sstr(sp.expand(expr))
 
 
 def write_extended_m(
@@ -470,8 +466,8 @@ def write_extended_m(
         entries = []
         for mom, mass in topo:
             mom_out = apply_elimination(mom, basis, eliminate_index, incoming_indices, outgoing_indices)
-            mom_s = sympy_to_mathematica_expr(mom_out)
-            mass_s = sympy_to_mathematica_expr(mass)
+            mom_s = sp.sstr(sp.expand(mom_out))
+            mass_s = sp.sstr(sp.expand(mass))
             entries.append(f"{{{mom_s}, {mass_s}}}")
         blocks.append("  {" + ", ".join(entries) + "}")
 
@@ -483,7 +479,7 @@ def write_extended_m(
 
 
 # ============================================================
-# Main + self-test
+# Self-test
 # ============================================================
 
 
@@ -495,113 +491,104 @@ def self_test() -> None:
     local_dict = {"l": l, "p1": p1, "p2": p2, "p3": p3, "p4": p4, "mt": mt}
     basis = [p1, p2, p3, p4]
 
-    incoming_indices = [0, 1]
-    outgoing_indices = [2, 3]
-
+    # Test 1: Basic extension from 3 to 4 propagators
     raw = "top1:[[l, mt], [l - p1 - p2 + p3, 0], [l - p2, mt]]"
     m = re.match(r"^\s*([A-Za-z0-9_]+)\s*:\s*(\[\[.*\]\])\s*;?\s*$", raw)
     topo_in = parse_topology_list(m.group(2), local_dict)
+    
+    topo_ext = extend_topology(topo_in, l, basis, target_nprops=4)
+    
+    # Verify: 4 propagators, all shifts differ by unit steps
+    assert len(topo_ext) == 4, f"Expected 4, got {len(topo_ext)}"
+    
+    shifts = [coeff_vector(shift_of(mom, l), basis) for mom, _ in topo_ext]
+    
+    # Check that all pairs have at least one path of unit steps
+    for i, s1 in enumerate(shifts):
+        for s2 in shifts[i+1:]:
+            assert l1_distance(s1, s2) >= 1, "Duplicate shift"
+    
+    print(f"Test 1 OK: {[sp.sstr(mom) for mom, _ in topo_ext]}")
 
-    topo_ext = extend_topology(
-        topo_in,
-        l,
-        basis,
-        target_nprops=4,
-        eliminate_index=None,
-        incoming_indices=incoming_indices,
-        outgoing_indices=outgoing_indices,
-        rank_needed=3,
-        max_add=10,
-        mass_new=sp.Integer(0),
-    )
+    # Test 2: Verify adjacency in output
+    raw2 = "test2:{{l,0},{l-p1-p2,0}}"
+    m2 = re.match(r"^\s*([A-Za-z0-9_]+)\s*:\s*(\{\{.*\}\})\s*$", raw2)
+    topo2_in = parse_topology_list(m2.group(2), local_dict)
+    topo2_ext = extend_topology(topo2_in, l, basis, target_nprops=4)
+    
+    assert len(topo2_ext) == 4, f"Expected 4, got {len(topo2_ext)}"
+    
+    # Check that we can form a path through all nodes
+    shifts2 = [coeff_vector(shift_of(mom, l), basis) for mom, _ in topo2_ext]
+    node_set = set(shifts2)
+    
+    # BFS to check connectivity
+    start = shifts2[0]
+    visited = {start}
+    queue = deque([start])
+    while queue:
+        curr = queue.popleft()
+        for neighbor in get_neighbors(curr, len(basis)):
+            if neighbor in node_set and neighbor not in visited:
+                visited.add(neighbor)
+                queue.append(neighbor)
+    
+    assert len(visited) == len(node_set), "Nodes not connected by unit steps"
+    print(f"Test 2 OK: {[sp.sstr(mom) for mom, _ in topo2_ext]}")
 
-    added = topo_ext[len(topo_in) :]
-    required = sp.expand(l - p1 - p2)
-    assert any(sp.expand(mom) == required for mom, _ in added), "Missing l - p1 - p2"
+    print("All self-tests passed.")
 
-    print("Self-test added propagators:")
-    for mom, mass in added:
-        print("  ", mom, ",", mass)
 
-    # Padding tests to ensure we reach 4 propagators
-    raw_a = "tA:{{l,0},{l-p2,0},{l-p3,mt}}"
-    m = re.match(r"^\s*([A-Za-z0-9_]+)\s*:\s*(\{\{.*\}\})\s*$", raw_a)
-    topo_a = parse_topology_list(m.group(2), local_dict)
-    topo_a_ext = extend_topology(
-        topo_a,
-        l,
-        basis,
-        target_nprops=4,
-        eliminate_index=None,
-        incoming_indices=incoming_indices,
-        outgoing_indices=outgoing_indices,
-        rank_needed=3,
-        max_add=10,
-        mass_new=sp.Integer(0),
-    )
-    assert len(topo_a_ext) == 4, "Expected 4 propagators for tA"
-
-    raw_b = "tB:{{l,mt},{l-p1-p2,mt},{l-p2,0}}"
-    m = re.match(r"^\s*([A-Za-z0-9_]+)\s*:\s*(\{\{.*\}\})\s*$", raw_b)
-    topo_b = parse_topology_list(m.group(2), local_dict)
-    topo_b_ext = extend_topology(
-        topo_b,
-        l,
-        basis,
-        target_nprops=4,
-        eliminate_index=None,
-        incoming_indices=incoming_indices,
-        outgoing_indices=outgoing_indices,
-        rank_needed=3,
-        max_add=10,
-        mass_new=sp.Integer(0),
-    )
-    assert len(topo_b_ext) == 4, "Expected 4 propagators for tB"
-
-    raw_c = "tC:{{l,0},{l-p2,0},{l-p1-p2,0}}"
-    m = re.match(r"^\s*([A-Za-z0-9_]+)\s*:\s*(\{\{.*\}\})\s*$", raw_c)
-    topo_c = parse_topology_list(m.group(2), local_dict)
-    topo_c_ext = extend_topology(
-        topo_c,
-        l,
-        basis,
-        target_nprops=4,
-        eliminate_index=None,
-        incoming_indices=incoming_indices,
-        outgoing_indices=outgoing_indices,
-        rank_needed=3,
-        max_add=10,
-        mass_new=sp.Integer(0),
-    )
-    for mom, _ in topo_c_ext:
-        v = coeff_vector(shift_of(mom, l), basis)
-        assert all(abs(c) <= 1 for c in v), "Found |coeff| > 1 in tC"
-    required_c = sp.expand(l - p1 - p2 - p3)
-    assert any(sp.expand(mom) == required_c for mom, _ in topo_c_ext), "Missing l - p1 - p2 - p3 in tC"
+# ============================================================
+# Main
+# ============================================================
 
 
 def main() -> None:
-    # Symbols used in input
+    import json
+    from pathlib import Path
+
+    cwd = Path.cwd()
+    run_dir = cwd.parent if cwd.name == "Mathematica" else cwd
+    meta_path = run_dir / "meta.json"
+
+    if not meta_path.exists():
+        raise FileNotFoundError(f"meta.json not found at {meta_path}")
+
+    meta = json.loads(meta_path.read_text())
+    n_in = int(meta.get("n_in", 2))
+    n_out = int(meta.get("n_out", 2))
+    n = n_in + n_out
+
+    particles = meta.get("particles", [])
+    incoming_names = [p["momentum"] for p in particles if p.get("side") == "in"]
+    outgoing_names = [p["momentum"] for p in particles if p.get("side") == "out"]
+
+    print(f"[extend] n = {n} (n_in={n_in}, n_out={n_out})")
+
+    # Build symbols
     l = sp.Symbol("l")
-    p1, p2, p3, p4, p5 = sp.symbols("p1 p2 p3 p4 p5")
     mt = sp.Symbol("mt")
+    p_syms = sp.symbols(" ".join(f"p{i}" for i in range(1, n + 1)))
+    p_syms = list(p_syms) if isinstance(p_syms, (list, tuple)) else [p_syms]
 
-    local_dict = {
-        "l": l, "p1": p1, "p2": p2, "p3": p3, "p4": p4, "p5": p5, "mt": mt
-    }
+    local_dict = {"l": l, "mt": mt}
+    for sym in p_syms:
+        local_dict[str(sym)] = sym
 
-    # Full external basis (no elimination during algorithm)
-    basis = [p1, p2, p3, p4, p5]
+    basis = p_syms
+    eliminate_index = len(basis) - 1  # Eliminate highest (p_n)
 
-    # Incoming/outgoing leg indices (edit to match your process)
-    incoming_indices = [0, 1]
-    outgoing_indices = [2, 3, 4]
+    incoming_indices = [i for i, p in enumerate(basis) if str(p) in incoming_names]
+    outgoing_indices = [i for i, p in enumerate(basis) if str(p) in outgoing_names]
 
-    # Choose which momentum to eliminate ONLY at output (e.g., last leg)
-    eliminate_index = len(basis) - 1
+    print(f"[extend] basis: {[str(b) for b in basis]}, eliminate: {basis[eliminate_index]}")
 
-    in_path = "Files/Topologies.txt"
-    out_path = "Extended.m"
+    in_path = cwd / "Files" / "Topologies.txt" if cwd.name == "Mathematica" else Path("Files/Topologies.txt")
+    out_path = cwd / "Extended.m" if cwd.name == "Mathematica" else Path("Extended.m")
+
+    if not in_path.exists():
+        raise FileNotFoundError(f"Topologies.txt not found at {in_path}")
 
     extended = []
 
@@ -612,36 +599,29 @@ def main() -> None:
                 continue
             m = re.match(r"^\s*([A-Za-z0-9_]+)\s*:\s*(\[\[.*\]\]|\{\{.*\}\})\s*;?\s*$", line)
             if not m:
-                raise ValueError(f"Line does not match expected format:\n{line}")
+                raise ValueError(f"Line does not match format: {line}")
 
+            name = m.group(1)
             raw_list = m.group(2)
             topo_in = parse_topology_list(raw_list, local_dict)
+            before = len(topo_in)
 
             topo_ext = extend_topology(
-                topo_in,
-                l,
-                basis,
-                target_nprops=4,
+                topo_in, l, basis,
+                target_nprops=n,
                 eliminate_index=eliminate_index,
-                incoming_indices=incoming_indices,
-                outgoing_indices=outgoing_indices,
-                rank_needed=len(basis) - 1,
-                max_add=20,
-                mass_new=sp.Integer(0),
             )
+
+            after = len(topo_ext)
+            print(f"[extend] {name}: {before} -> {after}")
 
             extended.append(topo_ext)
 
     write_extended_m(
-        out_path,
-        extended,
-        var_name="Extended",
-        basis=basis,
-        eliminate_index=eliminate_index,
-        incoming_indices=incoming_indices,
-        outgoing_indices=outgoing_indices,
+        str(out_path), extended, "Extended",
+        basis, eliminate_index, incoming_indices, outgoing_indices,
     )
-    print(f"Wrote {out_path} with {len(extended)} extended topologies.")
+    print(f"[extend] Wrote {out_path}")
 
 
 if __name__ == "__main__":

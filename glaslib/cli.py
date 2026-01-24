@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import cmd
 
-from glaslib.commands import contract, evaluate, extract, generate, ioperator, linrels, misc, reduce, uvct
+from glaslib.commands import contract, evaluate, extract, generate, ioperator, linrels, micoef, misc, ratcombine, reduce, uvct
 from glaslib.commands.common import AppState, MODES
 from glaslib.core.run_manager import RunContext
 from glaslib.formprep import prepare_form
@@ -59,6 +59,9 @@ class GlasShell(cmd.Cmd):
     def do_reduce(self, arg: str) -> None:
         reduce.run(self.state, arg)
 
+    def do_micoef(self, arg: str) -> None:
+        micoef.run(self.state, arg)
+
     def do_uvct(self, arg: str) -> None:
         uvct.run(self.state, arg)
 
@@ -73,6 +76,9 @@ class GlasShell(cmd.Cmd):
 
     def do_linrels(self, arg: str) -> None:
         linrels.run(self.state, arg)
+
+    def do_ratcombine(self, arg: str) -> None:
+        ratcombine.run(self.state, arg)
 
     def do_runs(self, arg: str) -> None:
         misc.runs(self.state, arg)
@@ -102,6 +108,21 @@ class GlasShell(cmd.Cmd):
 
     def do_smoke(self, arg: str) -> None:
         misc.smoke(self.state, arg)
+
+    def do_verbose(self, arg: str) -> None:
+        """Toggle or set verbose mode. Usage: verbose [on|off]"""
+        t = arg.strip().lower()
+        if t in ("on", "1", "true", "yes"):
+            self.state.verbose = True
+        elif t in ("off", "0", "false", "no"):
+            self.state.verbose = False
+        elif not t:
+            self.state.verbose = not self.state.verbose
+        else:
+            print("Usage: verbose [on|off]")
+            return
+        status = "ON" if self.state.verbose else "OFF"
+        print(f"[verbose] Verbose mode is now {status}")
 
     def do_exit(self, arg: str) -> bool:
         return True

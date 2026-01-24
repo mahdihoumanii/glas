@@ -326,9 +326,9 @@ l m0m0 =
 #do i = {{`massless'}}
 #do j = {{`massless'}}
 #if (`i' != `j' && `i'<`j')
-    +Log(ScaleMu^2*den(SPD(`i',`j')))*I`i'x`j'
+    +Log(Mu^2*den(SPD(`i',`j')))*I`i'x`j'
 #elseif `i' > `j'
-    +Log(ScaleMu^2*den(SPD(`i',`j')))*I`j'x`i'
+    +Log(Mu^2*den(SPD(`i',`j')))*I`j'x`i'
 #else
 +0
 #endif
@@ -360,9 +360,9 @@ l m0m=
 #do i = {{`massive'}}
 #do j = {{`massless'}}
 #if (`i' != `j' && `i'<`j')
-    +Log(mass(p`i')*ScaleMu*den(SPD(`i',`j')))*I`i'x`j'
+    +Log(mass(p`i')*Mu*den(SPD(`i',`j')))*I`i'x`j'
 #elseif `i' > `j'
-    +Log(mass(p`i')*ScaleMu*den(SPD(`i',`j')))*I`j'x`i'
+    +Log(mass(p`i')*Mu*den(SPD(`i',`j')))*I`j'x`i'
 #else
 +0
 #endif
@@ -445,8 +445,34 @@ id Pole(ep, -2) = 1/ep^2;
     .sort 
 id Pole(?a) = 0;
     .sort 
+#do i = 1,{{`np'}}
+#do j = 1,{{`np'}}
+id Vel(`i',`j') = Sqrt(1-(mass(p`i')^2 *mass(p`j')^2)*den(p`i'.p`j')^2);
+`mand'
+argument; 
+id Vel(`i',`j') = Sqrt(1-(mass(p`i')^2 *mass(p`j')^2)*den(p`i'.p`j')^2);
+`mand'
+argument;
+id Vel(`i',`j') = Sqrt(1-(mass(p`i')^2 *mass(p`j')^2)*den(p`i'.p`j')^2);
+`mand'
+endargument;
+
+argument;
+`mand'
+argument;
+`mand'
+endargument;
+endargument;
+
+endargument;
+#enddo 
+#enddo 
+    .sort 
+
+
 #call RationalFunction
 #call toden
+
 Format mathematica;
 b Log, Vel,ep,Pi,den;
     .sort

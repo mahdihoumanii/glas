@@ -321,9 +321,9 @@ def prepare_getct_projects(output_dir: Path, *, form_exe: str = "form") -> Dict[
     _, nhext_val, ng_val = _count_external(process_str)
     mand_define = _mand_define_from_process(process_str)
 
-    mul_vas = "Mul (`b'*gs^2*(-33 + 2*nh + 2*nl))/(48*ep*Pi^2) + (`b'*gs^2*nh*Log(ScaleMu^2/mt^2))/(24*Pi^2);"
-    mul_vzt = "Mul (-1/3*(gs^2*`nhext')/Pi^2 - (gs^2*`nhext')/(4*ep*Pi^2) - (gs^2*`nhext'*Log(ScaleMu^2/mt^2))/(4*Pi^2));"
-    mul_vg  = "Mul -1/24*(gs^2*`ng'*nh)/(ep*Pi^2) - (gs^2*`ng'*nh*Log(ScaleMu^2/mt^2))/(24*Pi^2);"
+    mul_vas = "Mul (`b'*gs^2*(-33 + 2*nh + 2*nl))/(48*ep*Pi^2) + (`b'*gs^2*nh*Log(Mu^2/mt^2))/(24*Pi^2);"
+    mul_vzt = "Mul (-1/3*(gs^2*`nhext')/Pi^2 - (gs^2*`nhext')/(4*ep*Pi^2) - (gs^2*`nhext'*Log(Mu^2/mt^2))/(4*Pi^2));"
+    mul_vg  = "Mul -1/24*(gs^2*`ng'*nh)/(ep*Pi^2) - (gs^2*`ng'*nh*Log(Mu^2/mt^2))/(24*Pi^2);"
 
     p_vas = _write_driver(
         form_dir,

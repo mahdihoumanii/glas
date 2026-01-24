@@ -25,7 +25,7 @@ id fgv(s1?, s2?, s3?, s4?) = Gmn(s1, s2)*Gmn(s3, s4);
 id,once fprop(s1?, s2?, p?, `mct') =fprop(s1,s2,p,`mct')-fprop(s1,1000, p, `mct') * (-i_*dM) * fprop(1000, s2, p, `mct');
 
 
-id dM = (gs^2*`mct')/(3*Pi^2) + (gs^2*`mct')/(4*ep*Pi^2) + (gs^2*`mct'*Log(ScaleMu^2/`mct'^2))/(4*Pi^2) + ep*((gs^2*`mct'*Log(ScaleMu^2/`mct'^2))/(3*Pi^2) + (gs^2*`mct'*Log(ScaleMu^2/`mct'^2)^2)/(8*Pi^2));
+id dM = -((gs^2*`mct')/(3*Pi^2) + (gs^2*`mct')/(4*ep*Pi^2) + (gs^2*`mct'*Log(Mu^2/`mct'^2))/(4*Pi^2) + ep*((gs^2*`mct'*Log(Mu^2/`mct'^2))/(3*Pi^2) + (gs^2*`mct'*Log(Mu^2/`mct'^2)^2)/(8*Pi^2)));
 
 id fprop(s1?, s2?, p?, m?) = i_* SUNFD(s1, s2)  *  prop(p, m)  *  (g(s1, s2, p) + deltas(s1, s2)* m);
 repeat id SUNFD(s1?,s2?)*SUNFD(s2?,s3?) = SUNFD(s1,s3);

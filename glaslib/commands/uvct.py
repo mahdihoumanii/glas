@@ -1,14 +1,19 @@
 from __future__ import annotations
 
-from glaslib.commands.common import AppState
+from glaslib.commands.common import AppState, parse_simple_flags
 from glaslib.getct import prepare_getct
 from glaslib.mathematica_totals import write_total_to_uvct
+from glaslib.core.logging import LOG_SUBDIR_UVCT
 from glaslib.core.parallel import run_jobs
 
 
 def run(state: AppState, arg: str) -> None:
-    if arg.strip():
-        print("Usage: uvct")
+    # Parse --verbose flag
+    remainder, verbose = parse_simple_flags(arg)
+    verbose = verbose or state.verbose  # Also check state.verbose
+    
+    if remainder.strip():
+        print("Usage: uvct [--verbose]")
         return
     if not state.ensure_run():
         return
@@ -25,7 +30,7 @@ def run(state: AppState, arg: str) -> None:
             print(f"Error: missing driver for {name}")
             return
         form_dir = driver.parent
-        ok = run_jobs(state.form_exe, [(name, form_dir, driver)], max_workers=1)
+        ok = run_jobs(state.form_exe, [(name, form_dir, driver)], max_workers=1, verbose=verbose, run_dir=state.ctx.run_dir, log_subdir=LOG_SUBDIR_UVCT)
         if not ok:
             return
         if state.ctx.run_dir and write_total_to_uvct(state.ctx.run_dir, name, name):

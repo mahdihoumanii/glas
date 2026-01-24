@@ -4,6 +4,7 @@ from typing import Optional
 
 from glaslib.commands.common import AppState, MODES, parse_mode_and_flags
 from glaslib.contracts import prepare_lo, prepare_mct, prepare_nlo
+from glaslib.core.logging import LOG_SUBDIR_CONTRACT
 from glaslib.core.parallel import run_jobs
 
 
@@ -18,9 +19,10 @@ def _resolve_jobs_requested(state: AppState, jobs: Optional[int]) -> int:
 
 
 def run(state: AppState, arg: str) -> None:
-    mode, jobs, _ = parse_mode_and_flags(arg, allow_dirac=False)
+    mode, jobs, _, verbose = parse_mode_and_flags(arg, allow_dirac=False)
+    verbose = verbose or state.verbose  # Also check state.verbose
     if mode not in MODES:
-        print("Usage: contract {lo|nlo|mct} [--jobs K]")
+        print("Usage: contract {lo|nlo|mct} [--jobs K] [--verbose]")
         return
     if not state.ensure_run():
         return
@@ -43,6 +45,6 @@ def run(state: AppState, arg: str) -> None:
     form_dir = out["form_dir"]
     jobs_eff = out["jobs_effective"]
     tasks = [(f"contract_{mode}_J{k}of{jobs_eff}", form_dir, drv) for k, drv in out["drivers"].items()]
-    ok = run_jobs(state.form_exe, tasks, max_workers=jobs_eff)
+    ok = run_jobs(state.form_exe, tasks, max_workers=jobs_eff, verbose=verbose, run_dir=state.ctx.run_dir, log_subdir=LOG_SUBDIR_CONTRACT)
     if ok:
         print(f"[contract {mode}] All jobs finished OK.")

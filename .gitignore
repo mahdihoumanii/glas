@@ -44,5 +44,12 @@ build/
 .history/
 *.tmp
 *.temp
+# Ignore all run outputs
+runs/*
+
+# But keep the example run
+!runs/qQtT/
+!runs/qQtT/**
+
 # ---- GLAS ----
 .github/copilot-instructions.md

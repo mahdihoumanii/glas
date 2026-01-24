@@ -9,6 +9,7 @@ from glaslib.commands.common import AppState, MODES, clamp_jobs, parse_mode_and_
 from glaslib.counterterms import prepare_mass_ct
 from glaslib.dirac import prepare_dirac
 from glaslib.formprep import prepare_form
+from glaslib.core.logging import LOG_SUBDIR_EVALUATE, LOG_SUBDIR_DIRAC
 from glaslib.core.parallel import chunk_range_1based, run_jobs
 from glaslib.core.paths import procedures_dir
 
@@ -151,9 +152,10 @@ def _resolve_jobs_requested(state: AppState, jobs: Optional[int]) -> int:
 
 
 def run(state: AppState, arg: str) -> None:
-    mode, jobs, use_dirac = parse_mode_and_flags(arg, allow_dirac=True)
+    mode, jobs, use_dirac, verbose = parse_mode_and_flags(arg, allow_dirac=True)
+    verbose = verbose or state.verbose  # Also check state.verbose
     if mode not in MODES:
-        print("Usage: evaluate {lo|nlo|mct} [--jobs K] [--dirac]")
+        print("Usage: evaluate {lo|nlo|mct} [--jobs K] [--dirac] [--verbose]")
         return
     if not state.ensure_run():
         return
@@ -196,7 +198,7 @@ def run(state: AppState, arg: str) -> None:
             mode=mode,
         )
         tasks = [(f"evaluate_{mode}_J{k}of{jobs_eff}", form_dir, drv) for k, drv in drivers.items()]
-        ok = run_jobs(state.form_exe, tasks, max_workers=jobs_eff)
+        ok = run_jobs(state.form_exe, tasks, max_workers=jobs_eff, verbose=verbose, run_dir=state.ctx.run_dir, log_subdir=LOG_SUBDIR_EVALUATE)
         if not ok:
             return
         print(f"[evaluate {mode}] All jobs finished OK.")
@@ -214,7 +216,7 @@ def run(state: AppState, arg: str) -> None:
                 (f"DiracSimplify_{mode}_J{k}of{info.get('jobs_effective', jobs_req)}", out["form_dir"], drv)
                 for k, drv in info.get("drivers", {}).items()
             ]
-            ok_dirac = run_jobs(state.form_exe, tasks, max_workers=info.get("jobs_effective", jobs_req))
+            ok_dirac = run_jobs(state.form_exe, tasks, max_workers=info.get("jobs_effective", jobs_req), verbose=verbose, run_dir=state.ctx.run_dir, log_subdir=LOG_SUBDIR_DIRAC)
             if ok_dirac:
                 print(f"[dirac {mode}] All jobs finished OK.")
         return
@@ -229,7 +231,7 @@ def run(state: AppState, arg: str) -> None:
         (f"mct_J{k}of{out['jobs_effective']}", out["form_dir"], drv)
         for k, drv in out["drivers"].items()
     ]
-    ok = run_jobs(state.form_exe, tasks, max_workers=out["jobs_effective"])
+    ok = run_jobs(state.form_exe, tasks, max_workers=out["jobs_effective"], verbose=verbose, run_dir=state.ctx.run_dir, log_subdir=LOG_SUBDIR_EVALUATE)
     if not ok:
         return
     print("[evaluate mct] All jobs finished OK.")
@@ -255,6 +257,6 @@ def run(state: AppState, arg: str) -> None:
             (f"DiracSimplify_mct_J{k}of{info.get('jobs_effective', jobs_req)}", out_dirac["form_dir"], drv)
             for k, drv in info.get("drivers", {}).items()
         ]
-        ok_dirac = run_jobs(state.form_exe, tasks, max_workers=info.get("jobs_effective", jobs_req))
+        ok_dirac = run_jobs(state.form_exe, tasks, max_workers=info.get("jobs_effective", jobs_req), verbose=verbose, run_dir=state.ctx.run_dir, log_subdir=LOG_SUBDIR_DIRAC)
         if ok_dirac:
             print("[dirac mct] All jobs finished OK.")
