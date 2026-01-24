@@ -10,6 +10,7 @@ Linus/MacOs
 - Interactive REPL (`glas.py`) orchestrating generation, preparation, evaluation, and tensor/Dirac simplification steps.
 - Built-in helpers for Dirac algebra, operator insertion, UV counterterms, and integral extraction.
 - Ready-made commands for LO/NLO contractions, counterterm construction, and integral bookkeeping.
+- Master-coefficient projection and summation via FiniteFlow (`linrels`) after reduction.
 
 ## Requirements
 - Python 3 (with sympy for topology extension)
@@ -80,6 +81,7 @@ All outputs auto-populate from `meta.json` kinematics. After IBP completion, `nm
 - `uvct` — Compute UV counterterms (Vas, Vzt, Vg, Vm)
 - `extract topologies` — 4-stage topology extraction with interactive parallel FORM execution (records `ntop`)
 - `ibp` — Run IBP reduction pipeline (mandIBP → IBP → SymmetryRelations)
+- `linrels` — Project and sum master coefficients using FiniteFlow (writes Files/MasterCoefficients.m)
 - `ioperator` — Insert operators (experimental)
 - `setrefs` — Set gluon polarization reference momenta
 - `use <tag>|<run_name>` — Switch active run directory
@@ -93,6 +95,13 @@ Most FORM commands support `--jobs K` to run K parallel jobs:
 - `glas> reduce --jobs 4`
 
 The `extract topologies` command prompts interactively for parallelism after Mathematica stages complete.
+
+## Master coefficient relations (`linrels`)
+- Prerequisites: run through `ibp` and `reduce` so that M0M1Reduced and master-integral metadata (`nmis`) exist.
+- Command: `glas> linrels`
+- What it does: copies and runs `mathematica/scripts/LinearRelations.m` inside the active run; uses FiniteFlow to find linear relations among rational functions, project master coefficients, and sum them across diagrams.
+- Outputs: `Mathematica/Files/MasterCoefficients.m` plus per-master logs in `Mathematica/LinearRelations.{stdout,stderr}.log`.
+- Dependencies: Mathematica/wolframscript with FiniteFlow available to the kernel.
 
 ## Notes
 - `uvct` writes outputs into the `UVCT` folder as `Vas.m`, `Vzt.m`, `Vg.m`, and `Vm.m`.
