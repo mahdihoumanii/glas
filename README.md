@@ -138,4 +138,11 @@ The `extract topologies` command prompts interactively for parallelism after Mat
 - If using custom FORM procedures, set `GLAS_FORM_PROCS` to the absolute path of `formlib/procedures` (or keep the bundled default).
 - For `extend.py` (topology extension), ensure Python has `sympy` installed; set `GLAS_PYTHON` if using a virtualenv.
 
+
+## Future developments
+
+- Removing extend.py and make integral mathematica dependence to the minimal
+- Adding FormFactor projection methods and full reconstruction via Finite Field methods
+- Solving the master integrals via differential equations in Epsilon factorised basis and systematic expansion. 
+
 **Note**: MultivariateApart and FermatTools are already bundled in `mathematica/scripts/` and loaded automatically by GLAS Mathematica scripts—no separate installation required.
