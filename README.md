@@ -10,7 +10,7 @@ Linus/MacOs
 - Interactive REPL (`glas.py`) orchestrating generation, preparation, evaluation, and tensor/Dirac simplification steps.
 - Built-in helpers for Dirac algebra, operator insertion, UV counterterms, and integral extraction.
 - Ready-made commands for LO/NLO contractions, counterterm construction, and integral bookkeeping.
-- Master-coefficient projection and summation via FiniteFlow (`linrels`) after reduction.
+- Master integral coefficients are simplified by finding linear relations by employing finite field methods using FiniteFlow.
 
 ## Requirements
 - Python 3 (with sympy for topology extension)
