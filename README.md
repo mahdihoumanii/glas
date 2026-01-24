@@ -141,8 +141,8 @@ The `extract topologies` command prompts interactively for parallelism after Mat
 
 ## Future developments
 
-- Removing extend.py and make integral mathematica dependence to the minimal
-- Adding FormFactor projection methods and full reconstruction via Finite Field methods
+- Removing extend.py and reduce mathematica dependence to the minimal.
+- Adding FormFactor projection methods and full reconstruction via Finite Field methods.
 - Solving the master integrals via differential equations in Epsilon factorised basis and systematic expansion. 
 
 **Note**: MultivariateApart and FermatTools are already bundled in `mathematica/scripts/` and loaded automatically by GLAS Mathematica scripts—no separate installation required.
