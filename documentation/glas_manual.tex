@@ -1,9 +1,13 @@
 \documentclass[11pt,a4paper]{article}
 
+% -----------------------------------------------------------------------------
+% Preamble
+% -----------------------------------------------------------------------------
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{amsmath,amssymb,amsfonts}
-\usepackage{slashed}
+\usepackage{lmodern}
+
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{hyperref}
 \usepackage{xcolor}
@@ -11,34 +15,33 @@
 \usepackage{booktabs}
 \usepackage{geometry}
 \usepackage{fancyhdr}
+\usepackage{enumitem}
 \usepackage{cite}
-\usepackage{tikz}
-\usetikzlibrary{shapes,arrows,positioning}
 
 \geometry{margin=2.5cm}
 \setlength{\headheight}{14pt}
 \addtolength{\topmargin}{-2pt}
 
 \hypersetup{
-    colorlinks=true,
-    linkcolor=blue!70!black,
-    citecolor=green!50!black,
-    urlcolor=blue!70!black
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=green!40!black,
+  urlcolor=blue!70!black
 }
 
 \lstset{
-    basicstyle=\ttfamily\small,
-    backgroundcolor=\color{gray!10},
-    frame=single,
-    framerule=0pt,
-    breaklines=true,
-    columns=flexible,
-    keepspaces=true,
-    showstringspaces=false,
-    keywordstyle=\color{blue!70!black}\bfseries,
-    commentstyle=\color{green!50!black}\itshape,
-    stringstyle=\color{red!70!black},
-    language=bash
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{gray!08},
+  frame=single,
+  framerule=0pt,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  keywordstyle=\color{blue!70!black}\bfseries,
+  commentstyle=\color{green!40!black}\itshape,
+  stringstyle=\color{red!70!black},
+  language=bash
 }
 
 \pagestyle{fancy}
@@ -47,786 +50,291 @@
 \lhead{\leftmark}
 \rfoot{\thepage}
 
-\title{\textbf{GLAS: General Loop Amplitude System}\\[0.5em]
-\large A Unified Framework for Automated NLO QCD Calculations}
+\title{\textbf{GLAS: General Loop Amplitude System}\\[0.4em]
+\large A Practical Manual and Tutorial for Automated One-Loop Workflows}
 
 \author{
-    M.~Houmani\\[0.3em]
-    \small\textit{High Energy Physics Group}\\[0.2em]
-    \small\texttt{mahdi.houmani@email.com}
+  M.~Houmani\\
+  \small High Energy Physics Group\\
+  \small\texttt{mahdi.houmani@email.com}
 }
-
 \date{\today}
 
+% -----------------------------------------------------------------------------
+% Document
+% -----------------------------------------------------------------------------
 \begin{document}
-
 \maketitle
 
 \begin{abstract}
-We present \textsc{GLAS} (General Loop Amplitude System), a comprehensive software framework for automated next-to-leading order (NLO) QCD calculations. The system provides a unified pipeline that seamlessly integrates diagram generation via \textsc{QGRAF}, symbolic amplitude manipulation using \textsc{FORM}, integral reduction through \textsc{Mathematica} with the \textsc{Blade} package, and UV renormalization in the $\overline{\text{MS}}$ scheme. A key feature is the implementation of finite field techniques using \textsc{FiniteFlow} for efficient identification of linear relations among master integral coefficients. \textsc{GLAS} implements a run-based workflow with parallel execution capabilities, enabling efficient computation of multi-leg processes relevant for LHC phenomenology. We describe the architecture, command interface, and internal algorithms in detail, with particular emphasis on the topology extraction, IBP reduction, renormalization, and finite field reconstruction stages.
+\textsc{GLAS} (General Loop Amplitude System) is a workflow orchestrator for perturbative calculations in high-energy physics. It automates and manages the standard one-loop pipeline by integrating established tools for diagram generation, symbolic manipulation, and reduction.
+Rather than replacing these tools, \textsc{GLAS} provides a run-based execution model, a reproducible directory layout, parallel driver generation, and a consistent command interface.
+This manual focuses on \emph{how to use} \textsc{GLAS} as a tutorial and operational reference: how to run a process end-to-end, where outputs are written, how the stages connect, and how to debug and extend the system. All external packages used by \textsc{GLAS} are cited throughout.
 \end{abstract}
 
 \tableofcontents
 \newpage
 
-%=============================================================================
-\section{Introduction}
-\label{sec:intro}
-%=============================================================================
+% -----------------------------------------------------------------------------
+\section{What GLAS Is (and What It Is Not)}
+% -----------------------------------------------------------------------------
 
-Precision predictions for hadron collider observables require the computation of scattering amplitudes at next-to-leading order (NLO) and beyond in the strong coupling expansion. While significant progress has been achieved in automating such calculations~\cite{Signer:2008va,Frixione:2007vw,Alwall:2014hca}, the workflow remains technically demanding, involving multiple specialized tools that must be orchestrated carefully.
+\textsc{GLAS} is designed for practitioners who already rely on specialized HEP software and want a robust way to orchestrate complex multi-stage computations.
 
-The typical NLO calculation pipeline consists of several stages:
-\begin{enumerate}
-    \item \textbf{Diagram generation}: Enumeration of all Feynman diagrams contributing at a given loop order.
-    \item \textbf{Amplitude construction}: Application of Feynman rules to obtain algebraic expressions.
-    \item \textbf{Amplitude manipulation}: Dirac algebra, color algebra, and kinematic simplifications.
-    \item \textbf{Integral identification}: Extraction of loop integral topologies from the amplitude.
-    \item \textbf{Integral reduction}: Reduction to master integrals via integration-by-parts (IBP) identities.
-    \item \textbf{Renormalization}: UV divergence cancellation through counterterm insertion.
-    \item \textbf{Coefficient simplification}: Identification of linear relations using finite field techniques.
-    \item \textbf{Master integral evaluation}: Numerical or analytical computation of the master integrals.
+\subsection*{GLAS is}
+\begin{itemize}[leftmargin=1.2em]
+  \item A \textbf{workflow orchestrator} and \textbf{run manager} that stitches together multiple external tools.
+  \item A \textbf{parallel driver generator} for \textsc{FORM} tasks and a structured logging system.
+  \item A \textbf{reproducible execution environment}: each calculation lives in a self-contained run directory.
+\end{itemize}
+
+\subsection*{GLAS is not}
+\begin{itemize}[leftmargin=1.2em]
+  \item A replacement for \textsc{QGRAF} \cite{Nogueira:1991ex}, \textsc{FORM} \cite{Vermaseren:2000nd,Kuipers:2012rf}, \textsc{Mathematica}, or reduction software.
+  \item A monolithic symbolic engine: it delegates heavy symbolic work to established packages and focuses on coordination and reproducibility.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section{External Toolchain and Citations}
+% -----------------------------------------------------------------------------
+
+\textsc{GLAS} relies on a standard ecosystem of tools. The exact installation method may differ between machines, but the conceptual dependency graph stays the same.
+
+\subsection{Core toolchain}
+\begin{itemize}[leftmargin=1.2em]
+  \item \textbf{Diagram generation}: \textsc{QGRAF} \cite{Nogueira:1991ex}
+  \item \textbf{Symbolic manipulation and code generation}: \textsc{FORM} \cite{Vermaseren:2000nd,Kuipers:2012rf}
+  \item \textbf{Topology discovery and integral processing}: \textsc{Mathematica} with \textsc{FeynCalc} \cite{Shtabovenko:2020gxv}
+  \item \textbf{IBP reduction}: \textsc{Blade} (Mathematica package) \cite{Blade:software}
+  \item \textbf{Finite-field reconstruction and linear relations}: \textsc{FiniteFlow} \cite{Peraro:2019svx,Peraro:2016wsq}
+\end{itemize}
+
+\subsection{Algebra backends used by Mathematica scripts}
+\begin{itemize}[leftmargin=1.2em]
+  \item \textbf{Partial fractioning / multivariate rational simplification}: \textsc{MultivariateApart} \cite{MultivariateApart:software}
+  \item \textbf{Rational algebra backend}: \textsc{Fermat} \cite{Lewis:Fermat}
+  \item \textbf{Gr\"obner basis / polynomial computations}: \textsc{Singular} \cite{DGPS:Singular}
+\end{itemize}
+
+\subsection{Optional / environment-dependent}
+Depending on your setup, your IBP stage may also integrate with additional tooling (e.g.\ \textsc{Kira}). If present, cite accordingly \cite{Maierhoefer:2017hyi}.
+
+% -----------------------------------------------------------------------------
+\section{Architecture Overview}
+% -----------------------------------------------------------------------------
+
+\subsection{Run-based workflow}
+All computations occur in a \textbf{run directory}:
+\begin{lstlisting}
+runs/{tag}_{nnnn}/
+\end{lstlisting}
+A run is a self-contained snapshot of a calculation: inputs, generated drivers, intermediate products, and logs.
+
+\subsection{Key idea: deterministic outputs}
+If you re-run a command inside the same run directory, \textsc{GLAS} reads the run metadata and uses the same directory conventions to locate inputs and write outputs.
+
+\subsection{The three-phase pipeline}
+\textsc{GLAS} structures the computation into three operational phases:
+
+\begin{enumerate}[leftmargin=1.2em]
+  \item \textbf{Generation} (\texttt{generate})\,: create diagrams and prepare a run skeleton using \textsc{QGRAF}.
+  \item \textbf{Evaluation} (\texttt{evaluate}, \texttt{contract}, \texttt{uvct})\,: apply rules and build symbolic expressions via \textsc{FORM}.
+  \item \textbf{Reduction and simplification} (\texttt{extract topologies}, \texttt{ibp}, \texttt{reduce}, \texttt{micoef}, \texttt{linrels}, \texttt{ratcombine})\,: extract integrals/topologies in Mathematica, run IBP reduction, and simplify coefficients using finite fields.
 \end{enumerate}
 
-\textsc{GLAS} addresses stages 1--7 by providing a unified command-line interface that automates the workflow and manages intermediate results. The system is designed with the following principles:
-\begin{itemize}
-    \item \textbf{Modularity}: Each stage is implemented as a separate module with well-defined interfaces.
-    \item \textbf{Parallelism}: Computationally intensive tasks are distributed across multiple cores.
-    \item \textbf{Reproducibility}: All intermediate results are stored in structured run directories.
-    \item \textbf{Extensibility}: New processes and models can be added through configuration files.
-\end{itemize}
+% -----------------------------------------------------------------------------
+\section{Project Layout}
+% -----------------------------------------------------------------------------
 
-This paper is organized as follows. In Section~\ref{sec:architecture} we describe the overall architecture and run-based workflow. Section~\ref{sec:pipeline} details the three-phase calculation pipeline. The topology extraction algorithm is presented in Section~\ref{sec:topology}, followed by the IBP reduction procedure in Section~\ref{sec:ibp}. Section~\ref{sec:renormalization} discusses UV renormalization and counterterm computation. The finite field approach for linear relation identification is detailed in Section~\ref{sec:linrels}. We discuss the command interface in Section~\ref{sec:commands} and conclude in Section~\ref{sec:conclusions}.
-
-%=============================================================================
-\section{Architecture}
-\label{sec:architecture}
-%=============================================================================
-
-\subsection{Run-Based Workflow}
-
-\textsc{GLAS} organizes all calculations around the concept of \emph{runs}. A run represents a complete calculation for a specific process and is stored in a dedicated directory under \texttt{runs/\{tag\}\_\{nnnn\}/}, where \texttt{tag} is derived from the process specification and \texttt{nnnn} is a zero-padded sequential counter.
-
-Each run directory contains:
-\begin{itemize}
-    \item \texttt{meta.json}: Process metadata including particle content, diagram counts, and job configuration.
-    \item \texttt{diagrams/}: \textsc{QGRAF} output files organized by loop order (\texttt{0l/}, \texttt{1l/}).
-    \item \texttt{form/}: \textsc{FORM} driver scripts and amplitude files.
-    \item \texttt{Mathematica/}: Scripts for topology extraction and IBP reduction.
-    \item \texttt{logs/}: Execution logs organized by command.
-\end{itemize}
-
-The run metadata is stored in JSON format and tracks essential information:
+A typical \textsc{GLAS} installation follows:
 \begin{lstlisting}[language={}]
-{
-  "process": "g g > t t~",
-  "tag": "ggtT",
-  "n0l": 3,
-  "n1l": 28,
-  "mand_define": "#call mandelstam2x2(p1,p2,p3,p4)",
-  "gluon_refs": {"p1": "p3", "p2": "p4"},
-  "created_at_utc": "2026-01-23T12:00:00Z"
-}
+glas.py
+glaslib/
+resources/
+  formlib/procedures/
+  diagrams/
+mathematica/scripts/
+runs/
 \end{lstlisting}
 
-\subsection{Directory Structure}
-
-The \textsc{GLAS} installation has the following structure:
+A typical run contains:
 \begin{lstlisting}[language={}]
-glas/
-  glas.py                  # Entry point
-  glaslib/                 # Core library
-    cli.py                 # REPL command interface
-    commands/              # Command implementations
-    contracts/             # Amplitude contraction modules
-    core/                  # Utilities (parallel, paths, refs)
-  mathematica/scripts/     # Mathematica scripts
-  resources/
-    formlib/procedures/    # FORM procedure library
-    diagrams/              # QGRAF binary and style files
-  runs/                    # Output directories
+runs/{tag}_{nnnn}/
+  meta.json
+  diagrams/{0l,1l}/
+  form/Files/...
+  Mathematica/...
+  logs/{command}/...
 \end{lstlisting}
 
-\subsection{External Dependencies}
-
-\textsc{GLAS} requires the following external tools:
-\begin{itemize}
-    \item \textsc{QGRAF}~\cite{Nogueira:1991ex}: Feynman diagram generator.
-    \item \textsc{FORM}~\cite{Vermaseren:2000nd,Kuipers:2012rf}: Symbolic manipulation system.
-    \item \textsc{Mathematica}: For topology extraction and IBP reduction.
-    \item \textsc{FeynCalc}~\cite{Shtabovenko:2020gxv}: Mathematica package for loop integrals.
-    \item \textsc{Blade}: IBP reduction package.
-    \item \textsc{Fermat}/\textsc{Singular}: Computer algebra backends.
+\subsection{The \texttt{meta.json} contract}
+Each run has a \texttt{meta.json} tracking:
+\begin{itemize}[leftmargin=1.2em]
+  \item process definition (tokens, tag),
+  \item diagram counts at each loop order,
+  \item kinematic configuration (Mandelstam definition),
+  \item job configuration (requested/effective workers),
+  \item gluon polarization reference momenta,
+  \item number of master integrals discovered after IBP.
 \end{itemize}
 
-%=============================================================================
-\section{The Three-Phase Pipeline}
-\label{sec:pipeline}
-%=============================================================================
+% -----------------------------------------------------------------------------
+\section{Quickstart Tutorial}
+% -----------------------------------------------------------------------------
 
-The calculation proceeds through three main phases, each corresponding to a set of \textsc{GLAS} commands.
+This section is meant to be copy-paste friendly.
 
-\subsection{Phase 1: Generation}
+\subsection{Important note: the \texttt{qQtT} run already exists}
+Your repository already contains a prepared run for the \texttt{qQtT} process inside \texttt{runs/}. That means you can start by attaching to it without generating anything:
+\begin{lstlisting}
+glas> runs qQtT
+glas> use qQtT_0001
+\end{lstlisting}
+(If the exact suffix differs, use \texttt{runs qQtT} to list available runs and pick the one present in your local checkout.)
 
-The \texttt{generate} command initiates a new calculation:
+\subsection{Standard end-to-end workflow (REPL)}
+A typical full sequence looks like:
+\begin{lstlisting}
+glas> verbose on
+
+# 1) Evaluate amplitudes (tree + one-loop)
+glas> evaluate lo --jobs 8
+glas> evaluate nlo --jobs 8 --dirac
+
+# 2) Contract: |M0|^2 and 2Re(M0*M1)
+glas> contract lo --jobs 4
+glas> contract nlo --jobs 4
+
+# 3) UV counterterms (renormalization ingredients)
+glas> uvct
+
+# 4) Extract and map loop topologies (Mathematica + FORM formatting stage)
+glas> extract topologies
+
+# 5) IBP reduction (Blade + auxiliary algebra backends)
+glas> ibp
+
+# 6) Apply reduction rules to contracted expressions
+glas> reduce --jobs 4
+
+# 7) Extract master-integral coefficients
+glas> micoef --jobs 4
+
+# 8) Find linear relations over finite fields
+glas> linrels
+
+# 9) Combine rational functions into a minimal basis
+glas> ratcombine
+\end{lstlisting}
+
+\subsection{What you should expect after each step}
+This is a practical ``sanity checklist'':
+
+\begin{itemize}[leftmargin=1.2em]
+  \item \textbf{After \texttt{evaluate}}: amplitude fragments under \texttt{form/Files/Amps/}.
+  \item \textbf{After \texttt{contract}}: interference and squared objects under \texttt{form/Files/} (mode-dependent).
+  \item \textbf{After \texttt{extract topologies}}: topology mapping outputs and integral rule headers usable by \textsc{FORM}.
+  \item \textbf{After \texttt{ibp}}: reduction rule files (Mathematica + FORM headers) per topology.
+  \item \textbf{After \texttt{reduce}}: reduced expressions under \texttt{form/Files/Reduced/}.
+  \item \textbf{After \texttt{micoef}}: per-master coefficient files under \texttt{Mathematica/Files/MasterCoefficients/}.
+  \item \textbf{After \texttt{linrels}/\texttt{ratcombine}}: simplified relations/basis used to compress the final representation.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\section{Commands (Operational Reference)}
+% -----------------------------------------------------------------------------
+
+\subsection{Run navigation}
+\begin{lstlisting}
+glas> runs [tag]
+glas> use {tag}            # attach to latest matching
+glas> use {tag}_{nnnn}     # attach to a specific run
+glas> show
+\end{lstlisting}
+
+\subsection{Generation and preparation}
 \begin{lstlisting}
 glas> generate g g > t t~ --jobs 8
 \end{lstlisting}
+This initializes a new run and invokes \textsc{QGRAF} \cite{Nogueira:1991ex}. It also prepares \textsc{FORM} driver scaffolding in the run.
 
-This command:
-\begin{enumerate}
-    \item Creates a new run directory with unique identifier.
-    \item Invokes \textsc{QGRAF} to generate tree-level ($\ell=0$) and one-loop ($\ell=1$) diagrams.
-    \item Parses the \textsc{QGRAF} output and stores diagram counts in metadata.
-    \item Prepares the \textsc{FORM} project structure with procedures and include files.
-\end{enumerate}
-
-The process specification follows the standard notation: initial-state particles on the left of ``\texttt{>}'' and final-state particles on the right. Antiparticles are denoted with tilde (e.g., \texttt{t\~{}} for $\bar{t}$).
-
-\subsection{Phase 2: Evaluation}
-
-The evaluation phase applies Feynman rules and performs algebraic simplifications:
+\subsection{Evaluation and contraction}
 \begin{lstlisting}
-glas> evaluate lo --jobs 8           # Tree-level
-glas> evaluate nlo --jobs 8 --dirac  # One-loop with Dirac simplification
+glas> evaluate lo  --jobs K
+glas> evaluate nlo --jobs K --dirac
+glas> contract lo  --jobs K
+glas> contract nlo --jobs K
+\end{lstlisting}
+These steps generate and execute \textsc{FORM} drivers \cite{Vermaseren:2000nd,Kuipers:2012rf}. The \texttt{--dirac} flag enables additional algebraic simplification inside the symbolic stage.
+
+\subsection{Gluon polarization references}
+Some contractions require polarization reference momenta for external gluons. \textsc{GLAS} stores these in \texttt{meta.json} and can prompt when missing:
+\begin{lstlisting}
+glas> setrefs
 \end{lstlisting}
 
-For each diagram, the \textsc{FORM} driver:
-\begin{enumerate}
-    \item Includes the diagram expression from \textsc{QGRAF} output.
-    \item Applies Feynman rules via \texttt{\#call FeynmanRules}.
-    \item Substitutes Mandelstam invariants.
-    \item Optionally performs Dirac algebra simplification.
-    \item Writes the result to \texttt{Files/Amps/amp\{0,1\}l/d\{i\}.h}.
-\end{enumerate}
-
-The \texttt{--dirac} flag enables simultaneous Dirac simplification, which includes:
-\begin{itemize}
-    \item Gamma matrix algebra using the Chisholm identity.
-    \item Trace evaluation for closed fermion loops.
-    \item Spinor orthogonality conditions for external fermions.
-\end{itemize}
-
-\subsection{Phase 3: Contraction}
-
-The contraction phase squares amplitudes and sums over helicities:
+\subsection{Topology extraction and IBP}
+Topology extraction uses \textsc{Mathematica} + \textsc{FeynCalc} \cite{Shtabovenko:2020gxv} to identify and map loop integrals onto completed topologies:
 \begin{lstlisting}
-glas> contract lo --jobs 4   # |M_0|^2
-glas> contract nlo --jobs 4  # 2 Re(M_0^* M_1)
-\end{lstlisting}
-
-For LO contractions, we compute $|\mathcal{M}_0|^2$ summed over colors and helicities. For NLO, we compute the interference term $2\,\text{Re}(\mathcal{M}_0^* \mathcal{M}_1)$.
-
-The contraction procedure includes:
-\begin{enumerate}
-    \item Complex conjugation of amplitudes.
-    \item Polarization sum insertion for external gluons.
-    \item Color algebra evaluation.
-    \item Combination of diagram pairs.
-\end{enumerate}
-
-%=============================================================================
-\section{Topology Extraction}
-\label{sec:topology}
-%=============================================================================
-
-After contraction, the NLO amplitude contains scalar Feynman integrals that must be identified and reduced. The topology extraction proceeds in four stages.
-
-\subsection{Stage 1: Incomplete Topology Identification}
-
-The Mathematica script \texttt{extract\_topologies\_stage1.m} loads the contracted amplitudes and identifies the propagator structures. Each loop integral is characterized by its set of propagators:
-\begin{equation}
-    I[\{q_1^2-m_1^2, q_2^2-m_2^2, \ldots\}] = \int \frac{\mathrm{d}^D \ell}{(2\pi)^D} \frac{1}{(q_1^2-m_1^2)(q_2^2-m_2^2)\cdots}
-\end{equation}
-where the $q_i$ are linear combinations of the loop momentum $\ell$ and external momenta.
-
-The output is a list of ``incomplete'' topologies---propagator sets that may not span the full space needed for IBP reduction.
-
-\subsection{Stage 2: Topology Completion}
-
-The Python script \texttt{extend.py} completes each topology by adding auxiliary propagators. For a one-loop amplitude with $n$ external legs, a complete topology requires $n+1$ propagators (one more than the number of independent scalar products).
-
-The completion algorithm uses breadth-first search (BFS) on an integer lattice where each node represents a shift vector for the propagator momentum:
-\begin{equation}
-    q = \ell + \sum_{i=1}^{n-1} a_i p_i, \quad a_i \in \mathbb{Z}
-\end{equation}
-
-The algorithm prioritizes:
-\begin{enumerate}
-    \item Filling gaps between existing propagators if the path includes missing momentum directions.
-    \item Adding propagators from endpoints in directions not yet covered.
-\end{enumerate}
-
-This ensures that the completed topology has propagators depending on all external momentum directions, which is essential for a valid IBP reduction.
-
-\subsection{Stage 2b: Topology Mapping}
-
-The script \texttt{extract\_topologies\_stage2.m} maps the amplitude integrals onto the completed topologies using \textsc{FeynCalc}'s \texttt{FCLoopFindTopologies} and related functions. The output includes:
-\begin{itemize}
-    \item \texttt{Files/integrals.m}: Integral definitions in Mathematica format.
-    \item \texttt{form/Files/intrule.h}: \textsc{FORM}-formatted substitution rules.
-\end{itemize}
-
-\subsection{Stage 3: Parallel FORM Processing}
-
-The final topology extraction stage processes the mapped integrals in parallel using \textsc{FORM}. The \texttt{ToTopos\_J\{k\}of\{N\}.frm} drivers:
-\begin{enumerate}
-    \item Load the integral rules from \texttt{intrule.h}.
-    \item Apply substitutions to express all integrals in terms of standard topology notation.
-    \item Write output to \texttt{Files/M0M1top/d\{i\}x\{j\}.h}.
-\end{enumerate}
-
-%=============================================================================
-\section{IBP Reduction}
-\label{sec:ibp}
-%=============================================================================
-
-The IBP reduction stage reduces all loop integrals to a minimal set of master integrals using integration-by-parts identities~\cite{Chetyrkin:1981qh,Tkachov:1981wb}.
-
-\subsection{Mandelstam Preparation}
-
-The script \texttt{mandIBP.m} computes the kinematic replacements needed for the reduction, storing results in \texttt{Files/mands.m}.
-
-\subsection{IBP Reduction with Blade}
-
-The main reduction is performed by \texttt{IBP.m} using the \textsc{Blade} package. For each topology $T_i$, the reduction produces:
-\begin{equation}
-    I_{T_i}[\{n_1,n_2,\ldots\}] = \sum_j c_j(\epsilon, s_{ij}, m^2) \, M_j
-\end{equation}
-where $M_j$ are master integrals and $c_j$ are rational functions of the kinematic invariants and the dimensional regulator $\epsilon = (4-D)/2$.
-
-The output includes:
-\begin{itemize}
-    \item \texttt{Files/IBP/IBP\{i\}.m}: Mathematica-format reduction rules.
-    \item \texttt{form/Files/IBP/IBP\{i\}.h}: \textsc{FORM}-format reduction rules.
-\end{itemize}
-
-\subsection{Symmetry Relations and PaVe Conversion}
-
-The script \texttt{SymmetryRelations.m} identifies relations between master integrals from different topologies and converts to the standard Passarino-Veltman (PaVe) basis~\cite{Passarino:1978jh}. The output includes:
-\begin{itemize}
-    \item \texttt{Files/SymmetryRelations.m}: Master integral list and PaVe rules.
-    \item \texttt{form/Files/SymmetryRelations.h}: \textsc{FORM} substitution rules.
-    \item \texttt{form/Files/MastersToSym.h}: Symbolic master integral identifiers.
-\end{itemize}
-
-%=============================================================================
-\section{Renormalization}
-\label{sec:renormalization}
-%=============================================================================
-
-The one-loop amplitude contains ultraviolet (UV) divergences that must be cancelled by counterterms derived from the renormalization of QCD parameters. \textsc{GLAS} implements the $\overline{\text{MS}}$ renormalization scheme with the following counterterm structure.
-
-\subsection{Counterterm Lagrangian}
-
-The QCD counterterm Lagrangian in the $\overline{\text{MS}}$ scheme reads:
-\begin{equation}
-    \mathcal{L}_{\text{CT}} = -\delta Z_t \, m_t \bar{\psi}_t \psi_t 
-    - \delta Z_g \, g_s \sum_q \bar{\psi}_q \gamma^\mu T^a \psi_q A_\mu^a
-    + \ldots
-\end{equation}
-where the renormalization constants are expanded as:
-\begin{align}
-    \delta Z_t &= \frac{\alpha_s}{4\pi} \left( \frac{1}{\epsilon} - \gamma_E + \ln 4\pi \right) \delta Z_t^{(1)} + \mathcal{O}(\alpha_s^2), \\
-    \delta Z_g &= \frac{\alpha_s}{4\pi} \left( \frac{1}{\epsilon} - \gamma_E + \ln 4\pi \right) \delta Z_g^{(1)} + \mathcal{O}(\alpha_s^2).
-\end{align}
-
-\subsection{UV Counterterm Computation}
-
-The \texttt{uvct} command computes the UV counterterms required to render the virtual amplitude finite:
-\begin{lstlisting}
-glas> uvct
-\end{lstlisting}
-
-For a Born cross section of order $\alpha_s^b$, the complete UV counterterm structure is given by the following contributions:
-
-\subsubsection*{Strong Coupling Renormalization (Vas)}
-
-The contribution due to strong-coupling renormalization reads:
-\begin{equation}
-    V^{\text{UV}}_{\alpha_s} = b \left| \mathcal{A}^{(n,0)} \right|^2 g_s^2 N_\epsilon \left[ \frac{4}{3\epsilon} T_F n_{lf} - \frac{11}{3\epsilon} C_A + \frac{4}{3\epsilon} T_F \sum_{\{n_{hf}\}} \left( \frac{\mu_R^2}{m_{hf}^2} \right)^\epsilon \right]
-\end{equation}
-where $n_{lf}$ is the number of massless (light) quark flavors, and the sum runs over all heavy flavors $\{n_{hf}\}$ circulating in the loops.
-
-\subsubsection*{Yukawa Coupling Renormalization (Vyuk)}
-
-The contribution due to renormalization of Yukawa couplings reads:
-\begin{equation}
-    V^{\text{UV}}_{\text{yuk}} = -\left| \mathcal{A}^{(n,0)} \right|^2 g_s^2 N_\epsilon 2 C_F \left[ \frac{3}{\epsilon} n_{\text{yuk},l} + \left( 4 + \frac{3}{\epsilon} \right) \sum_{\{n_{\text{yuk},h}\}} \left( \frac{\mu_R^2}{m_{\text{yuk},h}^2} \right)^\epsilon \right]
-\end{equation}
-with $n_{\text{yuk},l}$ and $n_{\text{yuk},h}$ the number of Yukawa vertices with massless and massive particles respectively. Color singlets and massless color triplets do not require any wave-function renormalization.
-
-\subsubsection*{Gluon Wave-Function Renormalization (Vg)}
-
-The gluon wave function is renormalized only if there are massive color triplets fermions running in the loop. Denoting by $n_g$ the number of external gluons at Born level, the contribution reads:
-\begin{equation}
-    V^{\text{UV}}_{\text{gwf}} = -n_g \left| \mathcal{A}^{(n,0)} \right|^2 g_s^2 N_\epsilon T_F \frac{4}{3\epsilon} \sum_{\{n_{hf}\}} \left( \frac{\mu_R^2}{m_{hf}^2} \right)^\epsilon
-\end{equation}
-
-\subsubsection*{External Massive Quark Wave-Function Renormalization (Vzt)}
-
-The wave-function renormalization of the external massive quarks (denoted $\text{ext}_{hf}$) gives:
-\begin{equation}
-    V^{\text{UV}}_{\text{ext}_{hf}} = -\left| \mathcal{A}^{(n,0)} \right|^2 g_s^2 N_\epsilon C_F \left( 4 + \frac{3}{\epsilon} \right) \sum_{\{\text{ext}_{hf}\}} \left( \frac{\mu_R^2}{m_{\text{ext}_{hf}}^2} \right)^\epsilon
-\end{equation}
-
-Here $N_\epsilon = \frac{(4\pi)^\epsilon}{16\pi^2} \Gamma(1+\epsilon)$ is the standard loop normalization factor.
-
-The counterterm contributions are stored in \texttt{Mathematica/UVCT/\{Vas,Vzt,Vg,Vm\}.m} for subsequent combination with the virtual amplitude.
-
-\subsection{Mass Counterterms}
-
-For processes involving massive quarks, the mass counterterm contributes at NLO. For carrying out mass renormalization for a quark line with momentum $k$, mass $m$, and color indices $i$ and $j$, one uses the mass insertion:
-\begin{equation}
-    \mathcal{G}^{\text{UV}\delta m}_{ij}(k) = \frac{i\delta_{ik}}{\slashed{k} - m}(-i\delta m)\frac{i\delta_{kj}}{\slashed{k} - m}
-\end{equation}
-with the mass counterterm:
-\begin{equation}
-    \delta m = g_s^2 C_F N_\epsilon \left( \frac{\mu_R^2}{m^2} \right)^\epsilon \left( 4 + \frac{3}{\epsilon} \right) m
-\end{equation}
-
-The \texttt{evaluate mct} command processes mass counterterm diagrams:
-\begin{lstlisting}
-glas> evaluate mct --jobs 4
-glas> contract mct --jobs 4
-\end{lstlisting}
-
-These diagrams are tree-level insertions of the mass counterterm vertex and contribute to the finite part of the renormalized amplitude.
-
-\subsection{Infrared Subtraction: The $\mathbf{I}$ Operator}
-
-While UV divergences are removed by renormalization, the virtual amplitude still contains infrared (IR) divergences from soft and collinear gluon exchange. These divergences cancel against corresponding singularities in the real emission contributions when computing physical observables. The Catani-Seymour dipole subtraction formalism~\cite{Catani:1996vz} provides a systematic framework for this cancellation.
-
-The IR-divergent structure of the one-loop amplitude is captured by the $\mathbf{I}$ operator:
-\begin{equation}
-    \mathcal{M}_1^{\text{ren}} = \mathbf{I}(\epsilon) \cdot \mathcal{M}_0 + \mathcal{M}_1^{\text{fin}} + \mathcal{O}(\epsilon)
-\end{equation}
-where $\mathcal{M}_1^{\text{fin}}$ is the finite remainder and $\mathbf{I}(\epsilon)$ contains the universal IR poles.
-
-The matrix element of the $\mathbf{I}$ operator for the interference with the tree-level amplitude reads:
-\begin{align}
-    2\,\text{Re}\langle \mathcal{M}^{(0)}_{n+1} | \mathbf{I} | \mathcal{M}^{(0)}_{n+1} \rangle &= \frac{\alpha_s}{4\pi} \frac{1}{\epsilon} \Bigg[ \left( -\frac{2}{\epsilon} \sum_{i_0} C_{i_0} + \sum_i \gamma_0^i \right) |\mathcal{M}^{(0)}_{n+1}|^2 \nonumber \\
-    &\quad + 2 \sum_{(i_0,j_0)} \ln\left| \frac{\mu_R^2}{s_{i_0 j_0}} \right| \langle \mathcal{M}^{(0)}_{n+1} | \mathbf{T}_{i_0} \cdot \mathbf{T}_{j_0} | \mathcal{M}^{(0)}_{n+1} \rangle \nonumber \\
-    &\quad - \sum_{(I,J)} \frac{1}{v_{IJ}} \ln\left( \frac{1 + v_{IJ}}{1 - v_{IJ}} \right) \langle \mathcal{M}^{(0)}_{n+1} | \mathbf{T}_I \cdot \mathbf{T}_J | \mathcal{M}^{(0)}_{n+1} \rangle \nonumber \\
-    &\quad + 4 \sum_{I,j_0} \ln\left| \frac{m_I \mu_R}{s_{I j_0}} \right| \langle \mathcal{M}^{(0)}_{n+1} | \mathbf{T}_I \cdot \mathbf{T}_{j_0} | \mathcal{M}^{(0)}_{n+1} \rangle \Bigg]
-\end{align}
-where:
-\begin{itemize}
-    \item The sum $\sum_{i_0}$ runs over massless partons, while $\sum_i$ runs over all partons.
-    \item The sum $\sum_{(i_0,j_0)}$ runs over distinct pairs of massless partons.
-    \item The sum $\sum_{(I,J)}$ runs over distinct pairs of massive partons.
-    \item The sum $\sum_{I,j_0}$ runs over mixed massive-massless pairs.
-\end{itemize}
-
-\subsubsection*{Kinematic Invariants}
-
-The Mandelstam-like kinematic invariants are defined as:
-\begin{align}
-    p_I^2 &= m_I^2, & v_I &= p_I/m_I, & v_{IJ} &= \sqrt{1 - \frac{m_I^2 m_J^2}{(p_I \cdot p_J)^2}}
-\end{align}
-where $I, J, K, \ldots$ denote indices for massive partons, while $i_0, j_0, k_0, \ldots$ denote massless partons.
-
-The invariant $s_{ij}$ is defined with an imaginary prescription:
-\begin{equation}
-    s_{ij} = 2\sigma_{ij}\, p_i \cdot p_j + i0^+
-\end{equation}
-where:
-\begin{equation}
-    \sigma_{ij} = \begin{cases}
-        +1 & \text{if } p_i \text{ and } p_j \text{ are both incoming or both outgoing} \\
-        -1 & \text{otherwise}
-    \end{cases}
-\end{equation}
-
-\subsubsection*{Color Charge Operators}
-
-The color charge operators $\mathbf{T}_i$ act on the color space of parton $i$:
-\begin{equation}
-    \langle c_1, \ldots, c_i, \ldots, c_n, c | \mathbf{T}_i | b_1, \ldots, b_i, \ldots, b_n \rangle = \langle c_1, \ldots, c_i, \ldots, c_n | T_i^c | b_1, \ldots, b_i, \ldots, b_n \rangle = \delta_{c_1 b_1} \cdots T^c_{c_i b_i} \cdots \delta_{c_n b_n}
-\end{equation}
-
-The generators $T^c_{c_1 c_2}$ depend on the parton type:
-\begin{align}
-    T^c_{c_1 c_2} &= i f^{c_1 c c_2} & &\text{(emitter is a gluon)} \\
-    T^c_{c_1 c_2} &= t^c_{c_1 c_2} = -t^c_{c_2 c_1} & &\text{(emitter is an outgoing quark/anti-quark)} \\
-    T^c_{c_1 c_2} &= -t^c_{c_2 c_1} = t^c_{c_1 c_2} & &\text{(emitter is an incoming quark/anti-quark)}
-\end{align}
-
-The color operators satisfy important identities:
-\begin{align}
-    \sum_i \mathbf{T}_i |\mathcal{M}_n\rangle &= 0, & T_i^c T_j^c &= \mathbf{T}_i \cdot \mathbf{T}_j = \mathbf{T}_j \cdot \mathbf{T}_i, & \mathbf{T}_i \cdot \mathbf{T}_i &= \mathbf{T}_i^2 = C_i = C_{a_i}
-\end{align}
-where the Casimir operators are:
-\begin{align}
-    C_g &= C_A, & C_q &= C_{\bar{q}} = C_F
-\end{align}
-and the trace normalization is:
-\begin{equation}
-    \text{Tr}[t^a t^b] = T_F \delta^{ab} = \frac{1}{2}\delta^{ab}
-\end{equation}
-
-\subsubsection*{Anomalous Dimensions}
-
-The leading-order anomalous dimensions appearing in the IR structure are:
-\begin{align}
-    \gamma_0^q &= -3 C_F & &\text{(massless quarks/anti-quarks)} \\
-    \gamma_0^Q &= -2 C_F & &\text{(massive quarks/anti-quarks)} \\
-    \gamma_0^g &= -\beta_0 = -\frac{11}{3} C_A + \frac{4}{3} T_F n_l & &\text{(gluons)}
-\end{align}
-
-The \texttt{ioperator} command computes the $\mathbf{I}$ operator contribution:
-\begin{lstlisting}
-glas> ioperator
-\end{lstlisting}
-
-This command:
-\begin{enumerate}
-    \item Generates \textsc{FORM} drivers for each pair of external partons $(i,j)$.
-    \item Computes the color-correlated Born amplitudes $\langle \mathcal{M}_0 | \mathbf{T}_i \cdot \mathbf{T}_j | \mathcal{M}_0 \rangle$.
-    \item Combines with the kinematic factors $(-s_{ij})^{-\epsilon}$.
-    \item Produces the integrated dipole contribution $\mathbf{I} \cdot |\mathcal{M}_0|^2$.
-\end{enumerate}
-
-The output files are:
-\begin{itemize}
-    \item \texttt{form/Files/Ioperator/I\{i\}x\{j\}.h}: Color-correlated contributions for parton pair $(i,j)$.
-    \item \texttt{form/Files/Ioperator/Ioperator\_master.h}: Combined $\mathbf{I}$ operator result.
-    \item \texttt{Mathematica/Files/Ioperator.m}: Mathematica-format output.
-\end{itemize}
-
-The finite virtual contribution is then:
-\begin{equation}
-    2\,\text{Re}(\mathcal{M}_0^* \mathcal{M}_1^{\text{fin}}) = 2\,\text{Re}(\mathcal{M}_0^* \mathcal{M}_1^{\text{ren}}) - \mathbf{I} \cdot |\mathcal{M}_0|^2
-\end{equation}
-which is free of both UV and IR poles and ready for numerical integration.
-
-\subsection{Renormalized Virtual Amplitude}
-
-The complete renormalized one-loop amplitude is:
-\begin{equation}
-    \mathcal{M}_1^{\text{ren}} = \mathcal{M}_1^{\text{bare}} + \mathcal{M}_0 \cdot \delta Z_{\text{ext}} + \mathcal{M}_{\text{CT}}
-\end{equation}
-where $\delta Z_{\text{ext}}$ includes external leg corrections and $\mathcal{M}_{\text{CT}}$ contains vertex counterterm insertions.
-
-The combination is performed automatically when all counterterm contributions have been computed, resulting in a UV-finite (but IR-divergent) virtual amplitude.
-
-\subsection{Complete NLO Virtual Result}
-
-The full workflow for obtaining the finite virtual contribution is:
-\begin{lstlisting}
-glas> evaluate nlo --jobs 4 --dirac
-glas> contract nlo --jobs 4
-glas> uvct
-glas> evaluate mct --jobs 4
-glas> contract mct --jobs 4
-glas> ioperator
-\end{lstlisting}
-
-After these steps, the finite virtual matrix element squared is available for combination with real emission contributions computed using standard dipole subtraction.
-
-%=============================================================================
-\section{Linear Relations via Finite Fields}
-\label{sec:linrels}
-%=============================================================================
-
-After IBP reduction, the amplitude coefficients are expressed as rational functions of kinematic invariants and $\epsilon$. These expressions can be extremely large, making direct manipulation computationally prohibitive. \textsc{GLAS} employs finite field techniques via \textsc{FiniteFlow}~\cite{Peraro:2019svx} to identify linear relations and simplify the final result.
-
-\subsection{Finite Field Reconstruction}
-
-The key insight is that rational function coefficients can be reconstructed from their numerical evaluations over finite fields $\mathbb{F}_p$ (integers modulo a prime $p$). For a rational function $f(x_1,\ldots,x_n)$, we:
-\begin{enumerate}
-    \item Evaluate $f$ at multiple points $(x_1^{(k)},\ldots,x_n^{(k)}) \in \mathbb{F}_p^n$.
-    \item Use Thiele's interpolation for univariate reconstruction.
-    \item Apply multivariate Newton interpolation for the full result.
-    \item Verify using additional evaluation points.
-\end{enumerate}
-
-This approach reduces memory requirements by orders of magnitude compared to symbolic manipulation.
-
-\subsection{Master Integral Coefficient Extraction}
-
-The \texttt{reduce} command applies the IBP reduction rules and extracts master integral coefficients:
-\begin{lstlisting}
-glas> reduce --jobs 4 --micoef
-\end{lstlisting}
-
-The \texttt{--micoef} flag triggers the master integral coefficient projection, producing:
-\begin{itemize}
-    \item \texttt{form/Files/MasterCoefs/c\{i\}.h}: Coefficient of master integral $i$.
-    \item \texttt{Mathematica/Files/MasterCoefficients.m}: Combined coefficient file.
-\end{itemize}
-
-\subsection{Finding Linear Relations}
-
-The \texttt{linrels} command uses \textsc{FiniteFlow} to identify linear dependencies among the master integral coefficients:
-\begin{lstlisting}
-glas> linrels
-\end{lstlisting}
-
-The algorithm proceeds as follows:
-\begin{enumerate}
-    \item \textbf{Setup}: Load the $n_{\text{mis}}$ master integral coefficients $c_1(\epsilon,s), \ldots, c_{n_{\text{mis}}}(\epsilon,s)$.
-    \item \textbf{Sampling}: Evaluate all coefficients at random points in $\mathbb{F}_p$ for kinematic variables, keeping $\epsilon$ symbolic or also numerical.
-    \item \textbf{Linear algebra}: Construct the coefficient matrix and compute its rank over $\mathbb{F}_p$.
-    \item \textbf{Nullspace}: Find the nullspace vectors, which correspond to linear relations:
-    \begin{equation}
-        \sum_{i=1}^{n_{\text{mis}}} r_i \, c_i = 0
-    \end{equation}
-    \item \textbf{Reconstruction}: Reconstruct the rational coefficients $r_i$ using multivariate interpolation.
-    \item \textbf{Verification}: Confirm the relation over $\mathbb{Q}$ using additional prime evaluations.
-\end{enumerate}
-
-\subsection{Implementation with FiniteFlow}
-
-The Mathematica script \texttt{LinearRelations.m} implements this procedure using \textsc{FiniteFlow}'s functional reconstruction:
-
-\begin{lstlisting}[language=Mathematica,basicstyle=\ttfamily\footnotesize]
-(* Load FiniteFlow *)
-<< FiniteFlow`
-
-(* Define the graph for coefficient evaluation *)
-FFNewGraph[graph, in, {s12, s13, s23, mt2}];
-FFAlgRatFunEval[graph, coeffs, {in}, coeffList];
-
-(* Find linear relations *)
-FFLinearRelations[graph, relations, {coeffs}];
-
-(* Reconstruct rational coefficients *)
-FFReconstructFunction[graph, relations, vars]
-\end{lstlisting}
-
-The output is written to \texttt{Files/MasterCoefficients.m} containing the simplified coefficient expressions.
-
-\subsection{Complexity Reduction}
-
-Linear relations arise from several sources:
-\begin{itemize}
-    \item \textbf{Symmetry}: Bose symmetry of identical external particles.
-    \item \textbf{Gauge invariance}: Ward identity constraints.
-    \item \textbf{IBP relations}: Hidden dependencies from incomplete reduction.
-    \item \textbf{Kinematic identities}: Schouten identity and momentum conservation.
-\end{itemize}
-
-For typical NLO calculations, the number of independent coefficients can be reduced by 20--50\% through linear relation identification, significantly simplifying the final result.
-
-\subsection{Amplitude Reconstruction}
-
-Once the independent coefficients are identified, the full amplitude is reconstructed:
-\begin{equation}
-    2\,\text{Re}(\mathcal{M}_0^* \mathcal{M}_1) = \sum_{i \in \text{indep}} c_i(\epsilon, s_{jk}, m^2) \, M_i
-\end{equation}
-where the sum runs only over the independent master integrals. The result is written in a form suitable for numerical evaluation or analytical expansion in $\epsilon$.
-
-%=============================================================================
-\section{Command Reference}
-\label{sec:commands}
-%=============================================================================
-
-\subsection{Core Commands}
-
-\begin{table}[htbp]
-\centering
-\begin{tabular}{@{}lp{8cm}@{}}
-\toprule
-\textbf{Command} & \textbf{Description} \\
-\midrule
-\texttt{generate \textit{process}} & Generate diagrams for the specified process \\
-\texttt{evaluate \{lo|nlo|mct\}} & Apply Feynman rules and kinematics \\
-\texttt{contract \{lo|nlo|mct\}} & Square amplitudes and sum helicities \\
-\texttt{uvct} & Compute UV counterterms \\
-\texttt{extract topologies} & Extract and complete loop topologies \\
-\texttt{ibp} & Perform IBP reduction \\
-\texttt{reduce} & Apply reduction rules to amplitudes \\
-\texttt{linrels} & Find linear relations between coefficients \\
-\texttt{ioperator} & Apply IR subtraction operators \\
-\bottomrule
-\end{tabular}
-\caption{Core \textsc{GLAS} commands for amplitude calculation.}
-\label{tab:commands}
-\end{table}
-
-\subsection{Utility Commands}
-
-\begin{table}[htbp]
-\centering
-\begin{tabular}{@{}lp{8cm}@{}}
-\toprule
-\textbf{Command} & \textbf{Description} \\
-\midrule
-\texttt{runs [\textit{tag}]} & List available runs \\
-\texttt{use \textit{run}} & Attach to an existing run \\
-\texttt{show} & Display current configuration \\
-\texttt{setrefs} & Set gluon polarization references \\
-\texttt{verbose [on|off]} & Toggle verbose output streaming \\
-\texttt{clean} & Delete all run directories \\
-\bottomrule
-\end{tabular}
-\caption{Utility commands for run management.}
-\label{tab:utility}
-\end{table}
-
-\subsection{Common Flags}
-
-All commands support the following flags:
-\begin{itemize}
-    \item \texttt{--jobs K}: Number of parallel workers (default: 1).
-    \item \texttt{--verbose}: Enable live output streaming.
-    \item \texttt{--quiet}: Suppress verbose output.
-\end{itemize}
-
-The \texttt{evaluate} command additionally supports \texttt{--dirac} for simultaneous Dirac simplification.
-
-\subsection{Verbose Mode}
-
-When verbose mode is enabled (either per-command with \texttt{--verbose} or globally with \texttt{verbose on}), all subprocess output is streamed live to the terminal with informative prefixes:
-\begin{lstlisting}
-[form eval lo J1/4] Processing diagram 1...
-[mma stage1] Loading FeynCalc...
-[py extend] Extending topology 3 of 5...
-\end{lstlisting}
-
-Logs are always written to \texttt{logs/\{command\}/\{step\}.log} regardless of verbose setting.
-
-%=============================================================================
-\section{Parallel Execution}
-\label{sec:parallel}
-%=============================================================================
-
-\textsc{GLAS} implements parallel execution at the diagram level. When \texttt{--jobs K} is specified, the diagram range is partitioned into $K$ chunks, each processed by an independent \textsc{FORM} worker.
-
-The chunking algorithm ensures balanced workload:
-\begin{equation}
-    \text{chunk}(k) = \left[\left\lfloor\frac{(k-1)N}{K}\right\rfloor + 1, \left\lfloor\frac{kN}{K}\right\rfloor\right]
-\end{equation}
-where $N$ is the total number of diagrams and $k \in \{1,\ldots,K\}$.
-
-Each worker writes to separate output files, avoiding race conditions. The effective number of jobs is automatically clamped to the diagram count to prevent empty chunks.
-
-%=============================================================================
-\section{FORM Procedure Library}
-\label{sec:procedures}
-%=============================================================================
-
-\textsc{GLAS} includes a library of \textsc{FORM} procedures in \texttt{resources/formlib/procedures/}:
-
-\begin{table}[htbp]
-\centering
-\begin{tabular}{@{}lp{7cm}@{}}
-\toprule
-\textbf{Procedure} & \textbf{Description} \\
-\midrule
-\texttt{FeynmanRules.prc} & QCD Feynman rule substitutions \\
-\texttt{DiracSimplify.prc} & Dirac algebra simplification \\
-\texttt{PolarizationSums.prc} & Gluon polarization sum insertion \\
-\texttt{color.prc} & SU(N) color algebra \\
-\texttt{Conjugate.prc} & Complex conjugation \\
-\texttt{mandelstam2x2.prc} & 2→2 Mandelstam invariants \\
-\texttt{mandelstam2x3.prc} & 2→3 Mandelstam invariants \\
-\texttt{Together.prc} & Rational function combination \\
-\bottomrule
-\end{tabular}
-\caption{\textsc{FORM} procedures included with \textsc{GLAS}.}
-\label{tab:procedures}
-\end{table}
-
-%=============================================================================
-\section{Example: $gg \to t\bar{t}$ at NLO}
-\label{sec:example}
-%=============================================================================
-
-We illustrate the complete workflow for top quark pair production in gluon fusion:
-
-\begin{lstlisting}
-glas> generate g g > t t~ --jobs 4
-[generate] Created run: ggtT_0001
-[generate] n0l=3, n1l=28
-
-glas> evaluate lo --jobs 4
-[evaluate lo] All jobs finished OK.
-
-glas> evaluate nlo --jobs 4 --dirac
-[evaluate nlo] All jobs finished OK.
-[dirac nlo] All jobs finished OK.
-
-glas> contract lo --jobs 4
-[contract lo] All jobs finished OK.
-
-glas> contract nlo --jobs 4
-[contract nlo] All jobs finished OK.
-
 glas> extract topologies
-[extract] Running stage1...
-[extract] Stage1 OK
-[extract] Running extend.py...
-[extract] extend.py OK
-[extract] Running stage2...
-[extract] Stage2 OK
-[extract] Jobs (1-3): 3
-[extract] Running ToTopos with 3 parallel job(s)...
-[extract] ToTopos OK
-
+\end{lstlisting}
+IBP reduction is performed by \textsc{Blade} \cite{Blade:software}, and uses algebra backends such as \textsc{Fermat} \cite{Lewis:Fermat}, \textsc{Singular} \cite{DGPS:Singular}, and \textsc{MultivariateApart} \cite{MultivariateApart:software} for simplification:
+\begin{lstlisting}
 glas> ibp
-[ibp] Running mandIBP.m...
-[ibp] mandIBP.m OK -> Files/mands.m
-[ibp] Running IBP.m...
-[ibp] IBP.m OK -> Files/IBP/ (5 topology files)
-[ibp] Running SymmetryRelations.m...
-[ibp] SymmetryRelations.m OK -> Files/SymmetryRelations.m
-[ibp] Recorded nmis = 12 in meta.json
 \end{lstlisting}
 
-The complete calculation produces:
-\begin{itemize}
-    \item 3 tree-level diagrams and 28 one-loop diagrams.
-    \item 5 independent loop topologies after completion.
-    \item 12 master integrals after IBP reduction.
+\subsection{Coefficient extraction and finite-field simplification}
+\begin{lstlisting}
+glas> reduce --jobs K
+glas> micoef --jobs K
+glas> linrels
+glas> ratcombine
+\end{lstlisting}
+Linear relations and basis selection are done using \textsc{FiniteFlow} \cite{Peraro:2019svx,Peraro:2016wsq}, which is the standard approach for large-scale rational reconstruction tasks in modern amplitude pipelines.
+
+% -----------------------------------------------------------------------------
+\section{Logging, Debugging, and Reproducibility}
+% -----------------------------------------------------------------------------
+
+\subsection{Verbose streaming}
+\texttt{verbose on} streams subprocess output in real time with informative prefixes (e.g.\ \texttt{[form ...]}, \texttt{[mma ...]}, \texttt{[py ...]}). Regardless of streaming mode, logs are written to \texttt{runs/\{run\}/logs/}.
+
+\subsection{Where to look when something fails}
+\begin{itemize}[leftmargin=1.2em]
+  \item \textbf{FORM failures}: check \texttt{form\_*.stdout.log} and \texttt{form\_*.stderr.log} in the run.
+  \item \textbf{Mathematica failures}: check the corresponding \texttt{logs/} stage file and the script output.
+  \item \textbf{External tool paths}: confirm your environment variables (e.g.\ \texttt{FERMATPATH}, \texttt{SINGULARPATH}).
 \end{itemize}
 
-%=============================================================================
-\section{Conclusions}
-\label{sec:conclusions}
-%=============================================================================
+\subsection{Reproducibility note}
+Everything required to reproduce the pipeline (inputs, intermediate products, drivers, metadata) remains in the run directory. This is intentional: it makes post-mortem debugging and result verification straightforward.
 
-We have presented \textsc{GLAS}, a unified framework for automated NLO QCD calculations. The system integrates diagram generation, symbolic manipulation, integral reduction, renormalization, and coefficient simplification into a coherent pipeline with parallel execution capabilities.
+% -----------------------------------------------------------------------------
+\section{Extending GLAS (Developer Notes)}
+% -----------------------------------------------------------------------------
 
-Key features include:
-\begin{itemize}
-    \item Run-based workflow with complete reproducibility.
-    \item Parallel execution at the diagram level.
-    \item Automated topology completion and IBP reduction.
-    \item $\overline{\text{MS}}$ renormalization with UV counterterm computation.
-    \item Finite field techniques for linear relation identification via \textsc{FiniteFlow}.
-    \item Verbose streaming mode for debugging and monitoring.
-    \item Modular architecture enabling easy extension.
-\end{itemize}
+\subsection{Adding a new command}
+The recommended pattern is:
+\begin{enumerate}[leftmargin=1.2em]
+  \item implement the command module under \texttt{glaslib/commands/},
+  \item register it in the REPL shell,
+  \item ensure it reads/writes \texttt{meta.json} rather than storing state elsewhere,
+  \item follow the existing parallel execution pattern to generate drivers and capture logs.
+\end{enumerate}
 
-The finite field approach implemented in the \texttt{linrels} command provides significant computational advantages for complex processes, enabling the simplification of master integral coefficients that would be intractable with purely symbolic methods.
+\subsection{Do not hardcode absolute paths}
+All paths should be derived from the run context and project root helpers. This is required for portability and reproducibility.
 
-Future developments will include support for NNLO calculations, extended renormalization schemes, and integration with Monte Carlo event generators for phenomenological applications.
+% -----------------------------------------------------------------------------
+\section{Acknowledgments}
+% -----------------------------------------------------------------------------
 
-%=============================================================================
-\section*{Acknowledgments}
-%=============================================================================
+This project is built on top of widely-used community tools: \textsc{QGRAF} \cite{Nogueira:1991ex}, \textsc{FORM} \cite{Vermaseren:2000nd,Kuipers:2012rf}, \textsc{FeynCalc} \cite{Shtabovenko:2020gxv}, \textsc{FiniteFlow} \cite{Peraro:2019svx,Peraro:2016wsq}, and algebra systems including \textsc{Fermat} \cite{Lewis:Fermat} and \textsc{Singular} \cite{DGPS:Singular}. We also acknowledge \textsc{MultivariateApart} \cite{MultivariateApart:software} and the IBP reduction tooling (\textsc{Blade}) \cite{Blade:software} used in the reduction stage.
 
-We thank the authors of \textsc{QGRAF}, \textsc{FORM}, \textsc{FeynCalc}, \textsc{Blade}, and \textsc{FiniteFlow} for making their software publicly available. This work was supported in part by [funding agency].
-
-%=============================================================================
+% -----------------------------------------------------------------------------
+% Bibliography
+% -----------------------------------------------------------------------------
 \begin{thebibliography}{99}
-
-\bibitem{Signer:2008va}
-A.~Signer and D.~Stöckinger,
-``Using dimensional reduction for hadronic collisions,''
-Nucl.\ Phys.\ B \textbf{808} (2009) 88.
-
-\bibitem{Frixione:2007vw}
-S.~Frixione, P.~Nason and C.~Oleari,
-``Matching NLO QCD computations with Parton Shower simulations: the POWHEG method,''
-JHEP \textbf{11} (2007) 070.
-
-\bibitem{Alwall:2014hca}
-J.~Alwall \textit{et al.},
-``The automated computation of tree-level and next-to-leading order differential cross sections, and their matching to parton shower simulations,''
-JHEP \textbf{07} (2014) 079.
 
 \bibitem{Nogueira:1991ex}
 P.~Nogueira,
@@ -848,57 +356,40 @@ V.~Shtabovenko, R.~Mertig and F.~Orellana,
 ``FeynCalc 9.3: New features and improvements,''
 Comput.\ Phys.\ Commun.\ \textbf{256} (2020) 107478.
 
-\bibitem{Chetyrkin:1981qh}
-K.~G.~Chetyrkin and F.~V.~Tkachov,
-``Integration by Parts: The Algorithm to Calculate beta Functions in 4 Loops,''
-Nucl.\ Phys.\ B \textbf{192} (1981) 159.
-
-\bibitem{Tkachov:1981wb}
-F.~V.~Tkachov,
-``A Theorem on Analytical Calculability of Four Loop Renormalization Group Functions,''
-Phys.\ Lett.\ B \textbf{100} (1981) 65.
-
-\bibitem{Passarino:1978jh}
-G.~Passarino and M.~J.~G.~Veltman,
-``One Loop Corrections for e+ e- Annihilation Into mu+ mu- in the Weinberg Model,''
-Nucl.\ Phys.\ B \textbf{160} (1979) 151.
-
-\bibitem{Czakon:2008zk}
-M.~Czakon,
-``Tops from Light Quarks: Full Mass Dependence at Two-Loops in QCD,''
-Phys.\ Lett.\ B \textbf{664} (2008) 307.
+\bibitem{Peraro:2016wsq}
+T.~Peraro,
+``Scattering amplitudes over finite fields and multivariate functional reconstruction,''
+JHEP \textbf{12} (2016) 030.
 
 \bibitem{Peraro:2019svx}
 T.~Peraro,
 ``FiniteFlow: multivariate functional reconstruction using finite fields and dataflow graphs,''
 JHEP \textbf{07} (2019) 031.
 
-\bibitem{vonManteuffel:2014ixa}
-A.~von Manteuffel and R.~M.~Schabinger,
-``A novel approach to integration by parts reduction,''
-Phys.\ Lett.\ B \textbf{744} (2015) 101.
+\bibitem{Lewis:Fermat}
+R.~H.~Lewis,
+``Fermat: a computer algebra system for polynomial and matrix computation,''
+(Software documentation and distribution).
 
-\bibitem{Peraro:2016wsq}
-T.~Peraro,
-``Scattering amplitudes over finite fields and multivariate functional reconstruction,''
-JHEP \textbf{12} (2016) 030.
+\bibitem{DGPS:Singular}
+W.~Decker, G.-M.~Greuel, G.~Pfister, and H.~Sch\"onemann,
+``Singular 4-0-2 --- A computer algebra system for polynomial computations,''
+\url{https://www.singular.uni-kl.de}.
 
-\bibitem{Klappert:2019emp}
-J.~Klappert and F.~Lange,
-``Reconstructing rational functions with FireFly,''
-Comput.\ Phys.\ Commun.\ \textbf{247} (2020) 106951.
+\bibitem{MultivariateApart:software}
+M.~Heller and A.~von~Manteuffel,
+``MultivariateApart --- multivariate partial fraction decomposition,''
+(Software documentation and distribution; bundled in this repository).
 
-\bibitem{Denner:1991kt}
-A.~Denner,
-``Techniques for calculation of electroweak radiative corrections at the one loop level and results for W physics at LEP-200,''
-Fortsch.\ Phys.\ \textbf{41} (1993) 307.
+\bibitem{Blade:software}
+``Blade --- IBP reduction package for Mathematica,''
+(Software documentation and distribution; used by \textsc{GLAS} in the IBP stage).
 
-\bibitem{Catani:1996vz}
-S.~Catani and M.~H.~Seymour,
-``A General algorithm for calculating jet cross-sections in NLO QCD,''
-Nucl.\ Phys.\ B \textbf{485} (1997) 291.
+\bibitem{Maierhoefer:2017hyi}
+P.~Maierh\"ofer, J.~Usovitsch and P.~Uwer,
+``Kira --- A Feynman integral reduction program,''
+Comput.\ Phys.\ Commun.\ \textbf{230} (2018) 99.
 
 \end{thebibliography}
 
 \end{document}
-'
