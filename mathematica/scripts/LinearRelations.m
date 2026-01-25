@@ -24,7 +24,7 @@ FindLinearRelations[rats_] := Module[
   Rats = rats /. rat[a_, b_] :> a/b;
   vars = Variables[Rats];
   FFNewGraph[graph, in, vars];
-  Print["Evaluating rational functions over finite fields"];
+  Print["Evaluating rational ",Length[Rats]," functions over finite fields"];
   FFAlgRatFunEval[graph, out, {in}, vars, Rats];
   Print["Done Evaluating"];  
   FFGraphOutput[graph, out];

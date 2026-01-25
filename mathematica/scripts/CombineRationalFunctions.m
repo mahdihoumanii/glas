@@ -23,7 +23,7 @@ FindLinearRelations[rats_] := Module[
   Rats = rats /. rat[a_, b_] :> a/b;
   vars = Variables[Rats];
   FFNewGraph[graph, in, vars];
-  Print["Evaluating rational functions over finite fields"];
+  Print["Evaluating ",Length[Rats], " rational functions over finite fields"];
   FFAlgRatFunEval[graph, out, {in}, vars, Rats];
   Print["Done Evaluating"];  
   FFGraphOutput[graph, out];
@@ -46,10 +46,12 @@ FindLinearRelations[rats_] := Module[
   FFNewGraph[graphFit];
   FFAlgSubgraphFit[graphFit, fit, {}, graph, vars, sortedCoefficients];
   FFGraphOutput[graphFit, fit];
-  Print["Solving Linear System of equations"]; 
-  fitLearn = FFDenseSolverLearn[graphFit, sortedCoefficients];
+  Print["Learning Linear System of equations"]; 
+  fitLearn = FFSparseSolverLearn[graphFit, sortedCoefficients];
+  Print["Reconstructing numeric Linear System of equations"]; 
   fitRec = FFReconstructNumeric[graphFit];
-  fitSol = FFDenseSolverSol[fitRec, fitLearn];
+  Print["Solving numeric Linear System of equations"];
+  fitSol = FFSparseSolverSol[fitRec, fitLearn];
   Print["Finding linear relations"]; 
   linrels = FFLinearRelationsFromFit[sortedFunctions, sortedCoefficients, fitSol];
 

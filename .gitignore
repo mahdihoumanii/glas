@@ -46,6 +46,7 @@ build/
 *.temp
 # Ignore all run outputs
 runs/*
+form/
 
 # But keep the example run
 !runs/qQtT/

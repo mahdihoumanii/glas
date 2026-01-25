@@ -5,7 +5,7 @@
   [ top, topB, - ; pfunct='fprop',  m='mt' ]
   [ g,   g,    + ; pfunct='gprop',  m='0'  ]
   [ gh,  ghB,  - ; pfunct='ghprop', m='0'  ]
-  [ h,   h,    + ; pfunct='sprop',  m='mH' ]
+  [ h,   h,    + ; pfunct='hprop',  m='mH' ]
 
 %  vertices
   [ qB,   q,   g ]
@@ -14,5 +14,4 @@
   [ g, g, g, g ]
   [ ghB, gh, g ]
 
-  % Higgs Yukawa to top (the key one for ttH, H->tt, etc.)
   [ topB, top, h ]
