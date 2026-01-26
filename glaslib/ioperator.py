@@ -382,7 +382,19 @@ endargument;
 endargument;
 #enddo
 #enddo
-
+    .sort 
+#do i = {{`outgoing'}}
+#do j = {{`outgoing'}}
+argument Log;
+argument den;
+id SPD(`i',`j') = 2*p`i'.p`j';
+id SPD(`j',`i') = 2*p`i'.p`j';
+`mand'
+endargument;
+endargument;
+#enddo
+#enddo
+    .sort 
 #do i = {{`incoming'}}
 #do j = {{`outgoing'}}
 argument Log;

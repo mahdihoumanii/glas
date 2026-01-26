@@ -1,0 +1,94 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{slashed}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{cite}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning}
+
+\geometry{margin=2.5cm}
+\setlength{\headheight}{14pt}
+\addtolength{\topmargin}{-2pt}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue!70!black,
+    citecolor=green!50!black,
+    urlcolor=blue!70!black
+}
+
+\lstset{
+    basicstyle=\ttfamily\small,
+    backgroundcolor=\color{gray!10},
+    frame=single,
+    framerule=0pt,
+    breaklines=true,
+    columns=flexible,
+    keepspaces=true,
+    showstringspaces=false,
+    keywordstyle=\color{blue!70!black}\bfseries,
+    commentstyle=\color{green!50!black}\itshape,
+    stringstyle=\color{red!70!black},
+    language=bash
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{GLAS Manual}
+\lhead{\leftmark}
+\rfoot{\thepage}
+
+\title{\textbf{GLAS: General Loop Amplitude System}\\[0.5em]
+\large A Unified Framework for Automated NLO QCD Calculations}
+
+\author{
+    M.~Houmani\\[0.3em]
+    \small\textit{High Energy Physics Group}\\[0.2em]
+    \small\texttt{elmahdi.houmani@rwth-aachen.de}
+}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+We present \textsc{GLAS} (General Loop Amplitude System), a comprehensive software framework for automated next-to-leading order (NLO) QCD calculations. The system provides a unified pipeline that seamlessly integrates diagram generation via \textsc{QGRAF}, symbolic amplitude manipulation using \textsc{FORM}, integral reduction through \textsc{Mathematica} with the \textsc{Blade} package, and UV renormalization in the $\overline{\text{MS}}$ scheme. A key feature is the implementation of finite field techniques using \textsc{FiniteFlow} for efficient identification of linear relations among master integral coefficients. \textsc{GLAS} implements a run-based workflow with parallel execution capabilities, enabling efficient computation of multi-leg processes relevant for LHC phenomenology. We describe the architecture, command interface, and internal algorithms in detail, with particular emphasis on the topology extraction, IBP reduction, renormalization, and finite field reconstruction stages.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+%=============================================================================
+
+\input{sections/introduction}
+\input{sections/architecture}
+\input{sections/pipeline}
+\input{sections/topology}
+\input{sections/ibp}
+\input{sections/linrels}
+\input{sections/renormalization}
+\input{sections/procedures}
+\input{sections/conclusions}
+\input{sections/acknowledgments}
+\input{sections/bibliography}
+
+\clearpage
+\appendix
+
+\input{sections/commands}
+\input{sections/parallel}
+\input{sections/exampleggtT}
+\input{sections/exampleqQtT}
+
+\end{document}

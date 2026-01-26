@@ -1,0 +1,116 @@
+\section{Example: $q \bar{q} \to t\bar{t}$ at NLO}
+\label{sec:example}
+%=============================================================================
+
+We illustrate the complete workflow for top quark pair production in gluon fusion:
+
+\begin{lstlisting}
+glas> generate q q~ > t t~
+[generate] Created run: ggtT_0001
+[generate] n0l=1, n1l=10
+
+glas> evaluate lo 
+[evaluate lo] All jobs finished OK.
+
+glas> evaluate nlo 
+[evaluate nlo] All jobs finished OK.
+[dirac nlo] All jobs finished OK.
+
+glas> evaluate mct
+[evaluate mct] All jobs finished OK.
+
+glas> contract lo
+[contract lo] All jobs finished OK.
+
+glas> contract nlo
+[contract nlo] All jobs finished OK.
+
+glas> contract mct
+[contract mct] All jobs finished OK.
+
+glas> uvct
+[start Vas] Vas.frm
+[done Vas]
+[start Vzt] Vzt.frm
+[done Vzt]
+[start Vg] Vg.frm
+[done Vg]
+[uvct] Completed.
+
+glas> extract topologies
+[extract] Running stage1...
+[extract] Stage1 OK
+[extract] Running extend.py...
+[extract] extend.py OK
+[extract] Running stage2...
+[extract] Stage2 OK
+[extract] Jobs (1-1): 1
+[extract] Running ToTopos with 1 parallel job(s)...
+[extract] ToTopos OK
+
+glas> ibp
+[ibp] Running mandIBP.m...
+[ibp] mandIBP.m OK -> Files/mands.m
+[ibp] Running IBP.m...
+[ibp] IBP.m OK -> Files/IBP/ (3 topology files)
+[ibp] Running SymmetryRelations.m...
+[ibp] SymmetryRelations.m OK -> Files/SymmetryRelations.m
+[ibp] Recorded nmis = 8 in meta.json
+[ibp] Also generated ../form/Files/MastersToSym.h (master integral substitution rules)
+
+
+glas> ioperator
+.
+.
+.
+[ioperator] Completed.
+
+glas> reduce
+[reduce] All reduction jobs finished OK.
+
+glas> micoef --combine 
+Running MasterCoefficients (1 jobs for 1 tree diagrams)...
+[micoef] MasterCoefficients finished OK.
+[micoef --combine] Running SumMasterCoefs (1 jobs for 8 master integrals)...
+[micoef --combine] SumMasterCoefs finished OK.
+
+glas> linrels --verbose
+[linrels] Running LinearRelations.m ...
+[mma linrels] ******************
+[mma linrels] ******************
+[mma linrels] Total Number of Initial rational functions: 133 was reduced to 57 in the first step.
+[mma linrels] ******************
+[mma linrels] ******************
+[linrels] LinearRelations.m OK. 
+
+glas> ratcombine
+[ratcombine] Copied AmpResult4.m 
+[ratcombine] Running CombineRationalFunctions.m ...
+[mma ratcombine] Performing partial fractioning on the final independent rational functions.
+[mma ratcombine] ******************
+[mma ratcombine] ******************
+[mma ratcombine] Total Number of rational functions 133 was reduced to 44.
+[mma ratcombine] ******************
+[mma ratcombine] ******************
+
+[ratcombine] OK -> Files/MasterCoefficients.m 
+\end{lstlisting}
+
+
+Finally one can run the example by going to \texttt{runs/\{qQtT\}\_\{0001\}/AmpResults4.m} and run the script to obtain: 
+\begin{lstlisting}
+Tree-level Comparison with madgraph: 1- amp/MGFinite = 1.22125*10^-15
+Pole Cancellation: Poles[-1]+ Poles[-2]+IR+UV = 0
+Finite contribution Comparison with madgraph: 1- amp/MGFinite = -6.21725*10^-15
+\end{lstlisting}
+
+
+
+The complete calculation produces:
+\begin{itemize}
+    \item 1 tree-level diagrams and 10 one-loop diagrams.
+    \item 3 independent loop topologies after completion.
+    \item 8 independent master integrals after IBP reduction.
+\end{itemize}
+
+%=============================================================================

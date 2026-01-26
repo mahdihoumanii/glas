@@ -112,3 +112,9 @@ file = OpenWrite["Files/MasterCoefficients.m"];
 WriteString[file, name, "= ", ToString[Result //. den[a_] :> 1/a, InputForm], ";\n"];
 WriteString[file, "RatFun", "= ", ToString[SymbolicOut //. den[a_] :> 1/a, InputForm], ";\n"];
 Close[file];
+
+
+
+
+Print["\n******************\n******************\nTotal Number of Initial rational functions: ", Length[indepFun]," was reduced to ",Length[symbolicOut]," in the first step."];
+Print["******************\n******************\n"];

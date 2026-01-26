@@ -1,0 +1,65 @@
+\section{The Three-Phase Pipeline}\label{sec:pipeline}
+%=============================================================================
+
+The calculation proceeds through three main phases, each corresponding to a set of \textsc{GLAS} commands.
+
+\subsection{Phase 1: Generation}
+
+The \texttt{generate} command initiates a new calculation:
+\begin{lstlisting}
+glas> generate g g > t t~ --jobs 8
+\end{lstlisting}
+
+This command:
+\begin{enumerate}
+    \item Creates a new run directory with a unique identifier.
+    \item Invokes \textsc{QGRAF} to generate tree-level ($\ell=0$) and one-loop ($\ell=1$) diagrams.
+    \item Parses the \textsc{QGRAF} output and stores diagram counts in metadata.
+    \item Prepares the \textsc{FORM} project structure with procedures and include files.
+\end{enumerate}
+
+The process specification follows the standard notation: initial-state particles on the left of ``\texttt{>}'' and final-state particles on the right. Antiparticles are denoted by a tilde (e.g., \texttt{t\~{}} for $\bar{t}$).
+
+\subsection{Phase 2: Evaluation}
+
+The evaluation phase applies Feynman rules and performs algebraic simplifications:
+\begin{lstlisting}
+glas> evaluate lo --jobs 8           # Tree-level
+glas> evaluate nlo --jobs 8 --dirac  # One-loop with Dirac simplification
+\end{lstlisting}
+
+For each diagram, the \textsc{FORM} driver:
+\begin{enumerate}
+    \item Includes the diagram expression from \textsc{QGRAF} output.
+    \item Applies Feynman rules via \texttt{\#call FeynmanRules}.
+    \item Substitutes Mandelstam invariants.
+    \item Optionally performs Dirac algebra simplification.
+    \item Writes the result to \texttt{Files/Amps/amp\{0,1\}l/d\{i\}.h}.
+\end{enumerate}
+
+The \texttt{--dirac} flag enables simultaneous Dirac simplification, which includes:
+\begin{itemize}
+    \item Gamma matrix algebra using the Chisholm identity.
+    \item Trace evaluation for closed fermion loops.
+    \item Spinor orthogonality conditions for external fermions.
+\end{itemize}
+
+\subsection{Phase 3: Contraction}
+
+The contraction phase squares amplitudes and sums over helicities:
+\begin{lstlisting}
+glas> contract lo --jobs 4   # |M_0|^2
+glas> contract nlo --jobs 4  # Re(M_0^* M_1)
+\end{lstlisting}
+
+For LO contractions, we compute $|\mathcal{M}_0|^2$ summed over colors and helicities. For NLO, we compute the interference term $\Re(\mathcal{M}_0^* \mathcal{M}_1)$.
+
+The contraction procedure includes:
+\begin{enumerate}
+    \item Complex conjugation of amplitudes.
+    \item Polarization sum insertion for external gluons.
+    \item Color algebra evaluation.
+    \item Combination of diagram pairs.
+\end{enumerate}
+
+%=============================================================================

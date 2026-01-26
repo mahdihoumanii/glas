@@ -1,0 +1,68 @@
+\section{Linear Relations via Finite Fields}\label{sec:linrels}
+%=============================================================================
+
+After IBP reduction, the amplitude coefficients are expressed as rational functions of kinematic invariants and $\epsilon$. These expressions can be extremely large, making direct manipulation computationally prohibitive. \textsc{GLAS} employs finite field techniques via \textsc{FiniteFlow}~\cite{Peraro:2019svx} to identify linear relations and simplify the final result.
+
+\subsection{Finite Field Reconstruction}
+
+FiniteFlow treats each coefficient as a black-box rational function and reconstructs it from numerical evaluations over finite fields $\mathbb{F}_p$. The workflow is:
+\begin{enumerate}
+    \item \textbf{Sampling}: Evaluate the function at many points in $\mathbb{F}_p^n$ by running the dataflow graph of the amplitude.
+    \item \textbf{Reconstruction}: Use functional reconstruction algorithms to recover a rational function in the kinematic variables from the samples.
+    \item \textbf{Lifting}: Repeat over multiple primes and apply rational reconstruction to lift finite-field results to $\mathbb{Q}$.
+    \item \textbf{Validation}: Check the reconstructed expression at additional random points and/or primes.
+\end{enumerate}
+
+Because all intermediate operations stay in finite fields, the method avoids expression swell and large intermediate terms, and it scales much better than purely symbolic manipulation for multi-scale amplitudes.
+
+
+\subsection{Simplifying Rational Functions}
+
+After the master coefficients are identified, and optionally combined, a full partial-fractioning step may be impractical for large numbers of denominators and high polynomial degrees with current tools. \textsc{GLAS} addresses this by further simplifying the rational-function basis: it combines terms with shared denominators and eliminates redundant partial-fraction pieces. In practice, each master coefficient is written as a sum of rational functions,
+\begin{equation}
+    c_i = \sum_{\ell} R_{\ell},
+\end{equation}
+The rational pieces $R_{\ell}$ typically share recurring denominator structures. The simplification proceeds in two stages:
+\begin{enumerate}
+    \item \textbf{Denominator grouping}: combine terms with identical denominators to reduce the number of distinct rational pieces.
+    \item \textbf{Linear reduction}: use finite-field linear algebra to find relations among the grouped rational functions and keep only an independent basis.
+\end{enumerate}
+
+A concrete example of denominator grouping is
+\begin{align}
+    R_{\ell} &= \frac{n_1}{d_1 d_2} + \frac{n_2}{d_1} + \frac{n_3}{d_1 d_2^2} + \frac{n_4}{d_3} \\
+    &= \frac{  \frac{d_2 n_1 + n_3}{d_2}}{d_1 d_2} + \frac{n_2}{d_1} + \frac{n_4}{d_3}
+    = \frac{q_1}{d_1 d_2} + \frac{q_2}{d_1} + \frac{q_3}{d_3},
+\end{align}
+after which linear relations among the $q_i$ can further reduce the basis, e.g. $q_1 = q_2 + q_3 - 2 q_4$ (not related to example above).
+
+The denominator grouping step is implemented in the \textsc{FORM} procedure \texttt{rationals.prc}. 
+
+\subsection{Finding Linear Relations}
+
+The \texttt{linrels} command uses \textsc{FiniteFlow} to identify linear dependencies among the master integral coefficients:
+\begin{lstlisting}
+glas> linrels [--combine]
+\end{lstlisting}
+
+The algorithm proceeds as follows:
+\begin{enumerate}
+    \item \textbf{Setup}: Load the $n_{\text{mis}}$ master integral coefficients $c_1(\epsilon,s), \ldots, c_{n_{\text{mis}}}(\epsilon,s)$.
+    \item \textbf{Sampling}: Evaluate all coefficients at random points in $\mathbb{F}_p$ for kinematic variables, keeping $\epsilon$ symbolic or also numerical.
+    \item \textbf{Linear algebra}: Construct the coefficient matrix and compute its rank over $\mathbb{F}_p$.
+    \item \textbf{Nullspace}: Find the nullspace vectors, which correspond to linear relations:
+    \begin{equation}
+        \sum_{i=1}^{n_{\text{mis}}} r_i \, c_i = 0
+    \end{equation}
+    \item \textbf{Reconstruction}: Reconstruct the rational coefficients $r_i$ using multivariate interpolation.
+    \item \textbf{Verification}: Confirm the relation over $\mathbb{Q}$ using additional prime evaluations.
+\end{enumerate}
+The optional \texttt{--combine} flag runs \texttt{CombineLinearRelations.m} to merge relations across master integrals and write a combined coefficient file to \texttt{Mathematica/Files/MasterCoefficients.m}.
+
+After this step is done, we denote the extracted rational functions as $f\left[i,j\right]$, where $i$ labels the master integral and $j$ enumerates the rational-function entries. Finally, after finding linear relations in each master coefficient independently, we call:
+\begin{lstlisting}
+glas> ratcombine
+\end{lstlisting}
+
+This runs \texttt{CombineRationalFunctions.m}, which finds linear relations among the independent functions extracted from all master coefficients. It significantly reduces analytic complexity; in five-point processes we have observed reductions from $\approx 40000$ rational functions to $\approx 4000$, and a disk-size reduction from roughly 2~GB to a few tens of MB. After the relations are found, the reconstructed independent functions are partially fractioned and collected as coefficients of a denominator basis.
+%=============================================================================

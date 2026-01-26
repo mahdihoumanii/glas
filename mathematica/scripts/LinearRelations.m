@@ -92,16 +92,27 @@ n = meta["n_in"] + meta["n_out"];
 nmis = meta["nmis"];
 name = meta["loop_main"];
 
-
 Do[
   Get["Files/MasterCoefficients/mi" <> ToString[i] <> "/MasterCoefficient" <> ToString[i] <> ".m"];
-  rats[i] = DeleteDuplicates[Cases[coef[i] //. rat[a_, b_] :> rat[a, b], rat[__], Infinity]];
+
+  rats[i] = DeleteDuplicates[Cases[Expand[coef[i]/. den[a_]:> If[MemberQ[Variables[a],ep],Den[a], den[a]]]//. den[a_]*rat[x_,y_]:> rat[x, y*a// Expand] //. Den[a_]:>den[a] , rat[__], Infinity]];
+  number[i] = Length[rats[i]];
   Print["Number of rational functions for mi" <> ToString[i] <> ": " <> ToString[Length[rats[i]]]];
   linRats[i] = FindLinearRelations[rats[i]] /. f[a_] -> f[i, a];
   Print["Number of linear relations for mi" <> ToString[i] <> ": " <> ToString[Length[linRats[i][[3]]]]];
-  MICoef[i] = coef[i] //. linRats[i][[4]] /. linRats[i][[3]];
-  file  = OpenWrite["Files/MasterCoefficients/mi" <> ToString[i] <> "/MasterCoefficient" <> ToString[i] <> ".m"];
+  MICoef[i] = coef[i]/. den[a_]:> If[MemberQ[Variables[a],ep],Den[a], den[a]] //. den[a_]*rat[x_,y_]:> rat[x, y*a// Expand]//. Den[a_]:>den[a]//. linRats[i][[4]] /. linRats[i][[3]]// CollectFlat[#, {gs, A0[__], B0[__],C0[__],D0[__],GLI[__],ep,den[__],nl, nh}]&;
+  file  = OpenWrite["Files/MasterCoefficients/MasterCoefficient" <> ToString[i] <> ".m"];
   WriteString[file, "MICoef[", ToString[i], "] = ", ToString[MICoef[i], InputForm], ";\n"];
   WriteString[file, "indepRules[", ToString[i], "] = ", ToString[linRats[i][[5]], InputForm], ";\n"];
   Close[file];
-, {i, 1,nmis}];
+  lenlins[i] =  Length[linRats[i][[3]]];
+  Clear[rats, linRats, coef, MICoef];
+, {i,nmis}];
+
+
+file = OpenWrite["Files/indeplen.m"];
+WriteString[file, ToString[Sum[number[i],{i,nmis}]]];
+Close[file];
+
+Print["\n******************\n******************\nTotal Number of Initial rational functions: ", Sum[number[i],{i,nmis}]," was reduced to ",Sum[number[i],{i,nmis}]- Sum[lenlins[i],{i, nmis}]," in the first step."];
+Print["******************\n******************\n"];

@@ -40,6 +40,7 @@ def run(state: AppState, arg: str) -> None:
     run_mat_dir = run_dir / "Mathematica"
     run_mat_dir.mkdir(parents=True, exist_ok=True)
     (run_mat_dir / "Files").mkdir(parents=True, exist_ok=True)
+    _copy_amp_results_template(run_dir, repo_root)
 
     env = os.environ.copy()
 
@@ -93,3 +94,32 @@ def run(state: AppState, arg: str) -> None:
         print(f"[ratcombine] OK -> Files/MasterCoefficients.m (log: {log_file})")
     else:
         print("[ratcombine] OK -> Files/MasterCoefficients.m")
+
+
+def _copy_amp_results_template(run_dir: Path, repo_root: Path) -> None:
+    """Copy AmpResultN template to runs/process/mathematica/AmpResultsN.m based on meta.json."""
+    import json
+
+    meta_path = run_dir / "meta.json"
+    if not meta_path.exists():
+        print("[ratcombine] Warning: meta.json not found, skipping AmpResultsN.m copy.")
+        return
+
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    n_in = int(meta.get("n_in", 0) or 0)
+    n_out = int(meta.get("n_out", 0) or 0)
+    n_particles = n_in + n_out
+    if n_particles <= 0:
+        print("[ratcombine] Warning: Particle count missing in meta.json, skipping AmpResultsN.m copy.")
+        return
+
+    src_script = repo_root / "mathematica" / "scripts" / f"AmpResult{n_particles}.m"
+    if not src_script.exists():
+        print(f"[ratcombine] Warning: {src_script} not found for n={n_particles} particles.")
+        return
+
+    dst_dir = run_dir / "mathematica"
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    dst_script = dst_dir / f"AmpResults{n_particles}.m"
+    dst_script.write_text(src_script.read_text(encoding="utf-8"), encoding="utf-8")
+    print(f"[ratcombine] Copied AmpResult{n_particles}.m -> {dst_script}")

@@ -1,0 +1,219 @@
+\section{Renormalization}
+\label{sec:renormalization}
+%=============================================================================
+
+The one-loop amplitude contains ultraviolet (UV) and infrared (IR) divergences that must be cancelled by counterterms derived from the renormalization of QCD parameters. \textsc{GLAS} implements the $\overline{\text{MS}}$ renormalization scheme with the following counterterm structure.
+
+%\subsection{Counterterm Lagrangian}%
+
+%The QCD counterterm Lagrangian in the $\overline{\text{MS}}$ %scheme reads:
+%\begin{equation}
+%    \mathcal{L}_{\text{CT}} = -\delta Z_t \, m_t \bar{\psi}_t \psi_t 
+%    - \delta Z_g \, g_s \sum_q \bar{\psi}_q \gamma^\mu T^a \psi_q A_\mu^a
+%    + \ldots
+%\end{equation}
+%where the renormalization constants are expanded as:
+%\begin{align}
+%    \delta Z_t &= \frac{\alpha_s}{4\pi} \left( \frac{1}{\epsilon} - \gamma_E + \ln 4\pi \right) \delta Z_t^{(1)} + \mathcal{O}(\alpha_s^2), \\
+%    \delta Z_g &= \frac{\alpha_s}{4\pi} \left( \frac{1}{\epsilon} - \gamma_E + \ln 4\pi \right) \delta Z_g^{(1)} + \mathcal{O}(\alpha_s^2).
+%\end{align}
+\subsection{Mass Counterterms}
+
+For processes involving massive quarks, the mass counterterm contributes at NLO. For carrying out mass renormalization for a quark line with momentum $k$, mass $m$, and color indices $i$ and $j$, one uses the mass insertion:
+\begin{equation}
+    \mathcal{G}^{\text{UV}\delta m}_{ij}(k) = \frac{i\delta_{ik}}{\slashed{k} - m}(-i\delta m)\frac{i\delta_{kj}}{\slashed{k} - m}
+\end{equation}
+with the mass counterterm:
+\begin{equation}
+    \delta m = g_s^2 C_F N_\epsilon \left( \frac{\mu_R^2}{m^2} \right)^\epsilon \left( 4 + \frac{3}{\epsilon} \right) m
+\end{equation}
+
+The \texttt{evaluate mct} command processes mass counterterm diagrams:
+\begin{lstlisting}
+glas> evaluate mct --jobs 4
+glas> contract mct --jobs 4
+\end{lstlisting}
+
+These diagrams are tree-level insertions of the mass counterterm vertex and contribute to the finite part of the renormalized amplitude.
+
+\subsection{UV Counterterm Computation}
+
+After obtaining the tree-level squared amplitude and the mass counterterm from \texttt{evaluate/contract lo/mct}, one can call \texttt{uvct}, which computes the UV counterterms required to render the virtual amplitude finite:
+\begin{lstlisting}
+glas> uvct
+\end{lstlisting}
+
+For a Born cross section of order $\alpha_s^b$, the complete UV counterterm structure is given by the following contributions:
+
+\subsubsection*{Strong Coupling Renormalization (Vas)}
+
+The contribution due to strong-coupling renormalization reads:
+\begin{equation}
+    V^{\text{UV}}_{\alpha_s} = b \left| \mathcal{A}^{(n,0)} \right|^2 g_s^2 N_\epsilon \left[ \frac{4}{3\epsilon} T_F n_{lf} - \frac{11}{3\epsilon} C_A + \frac{4}{3\epsilon} T_F \sum_{\{n_{hf}\}} \left( \frac{\mu_R^2}{m_{hf}^2} \right)^\epsilon \right]
+\end{equation}
+where $n_{lf}$ is the number of massless (light) quark flavors, and the sum runs over all heavy flavors $\{n_{hf}\}$ circulating in the loops.
+
+\subsubsection*{Yukawa Coupling Renormalization (Vyuk)}
+
+The contribution due to renormalization of Yukawa couplings reads:
+\begin{equation}
+    V^{\text{UV}}_{\text{yuk}} = -\left| \mathcal{A}^{(n,0)} \right|^2 g_s^2 N_\epsilon 2 C_F \left[ \frac{3}{\epsilon} n_{\text{yuk},l} + \left( 4 + \frac{3}{\epsilon} \right) \sum_{\{n_{\text{yuk},h}\}} \left( \frac{\mu_R^2}{m_{\text{yuk},h}^2} \right)^\epsilon \right]
+\end{equation}
+with $n_{\text{yuk},l}$ and $n_{\text{yuk},h}$ the number of Yukawa vertices with massless and massive particles respectively. Color singlets and massless color triplets do not require any wave-function renormalization.
+
+\subsubsection*{Gluon Wave-Function Renormalization (Vg)}
+
+The gluon wave function is renormalized only if there are massive color triplets fermions running in the loop. Denoting by $n_g$ the number of external gluons at Born level, the contribution reads:
+\begin{equation}
+    V^{\text{UV}}_{\text{gwf}} = -n_g \left| \mathcal{A}^{(n,0)} \right|^2 g_s^2 N_\epsilon T_F \frac{4}{3\epsilon} \sum_{\{n_{hf}\}} \left( \frac{\mu_R^2}{m_{hf}^2} \right)^\epsilon
+\end{equation}
+
+\subsubsection*{External Massive Quark Wave-Function Renormalization (Vzt)}
+
+The wave-function renormalization of the external massive quarks (denoted $\text{ext}_{hf}$) gives:
+\begin{equation}
+    V^{\text{UV}}_{\text{ext}_{hf}} = -\left| \mathcal{A}^{(n,0)} \right|^2 g_s^2 N_\epsilon C_F \left( 4 + \frac{3}{\epsilon} \right) \sum_{\{\text{ext}_{hf}\}} \left( \frac{\mu_R^2}{m_{\text{ext}_{hf}}^2} \right)^\epsilon
+\end{equation}
+
+Here $N_\epsilon = \frac{(4\pi)^\epsilon}{16\pi^2} \Gamma(1+\epsilon)$ is the standard loop normalization factor.
+
+The counterterm contributions are stored in \texttt{Mathematica/UVCT/\{Vas,Vzt,Vg,Vm\}.m} for subsequent combination with the virtual amplitude.
+
+
+
+\subsection{Infrared Subtraction}
+
+While UV divergences are removed by renormalization, the virtual amplitude still contains infrared (IR) divergences from soft and collinear gluon exchange. These divergences cancel against corresponding singularities in the real emission contributions when computing physical observables. The Catani-Seymour dipole subtraction formalism~\cite{Catani:1996vz} provides a systematic framework for this cancellation.
+
+The IR-divergent structure of the one-loop amplitude is captured by the $\mathbf{I}$ operator:
+\begin{equation}
+    \mathcal{M}_1^{\text{ren}} = \mathbf{I}(\epsilon) \cdot \mathcal{M}_0 + \mathcal{M}_1^{\text{fin}} + \mathcal{O}(\epsilon)
+\end{equation}
+where $\mathcal{M}_1^{\text{fin}}$ is the finite remainder and $\mathbf{I}(\epsilon)$ contains the universal IR poles.
+
+The matrix element of the $\mathbf{I}$ operator for the interference with the tree-level amplitude reads \cite{Czakon:2014oma}:
+\begin{align}
+    2\,\Re\langle \mathcal{M}^{(0)}_{n+1} | \mathbf{I} | \mathcal{M}^{(0)}_{n+1} \rangle &= \frac{\alpha_s}{4\pi} \frac{1}{\epsilon} \Bigg[ \left( -\frac{2}{\epsilon} \sum_{i_0} C_{i_0} + \sum_i \gamma_0^i \right) |\mathcal{M}^{(0)}_{n+1}|^2 \nonumber \\
+    &\quad + 2 \sum_{(i_0,j_0)} \ln\left| \frac{\mu_R^2}{s_{i_0 j_0}} \right| \langle \mathcal{M}^{(0)}_{n+1} | \mathbf{T}_{i_0} \cdot \mathbf{T}_{j_0} | \mathcal{M}^{(0)}_{n+1} \rangle \nonumber \\
+    &\quad - \sum_{(I,J)} \frac{1}{v_{IJ}} \ln\left( \frac{1 + v_{IJ}}{1 - v_{IJ}} \right) \langle \mathcal{M}^{(0)}_{n+1} | \mathbf{T}_I \cdot \mathbf{T}_J | \mathcal{M}^{(0)}_{n+1} \rangle \nonumber \\
+    &\quad + 4 \sum_{I,j_0} \ln\left| \frac{m_I \mu_R}{s_{I j_0}} \right| \langle \mathcal{M}^{(0)}_{n+1} | \mathbf{T}_I \cdot \mathbf{T}_{j_0} | \mathcal{M}^{(0)}_{n+1} \rangle \Bigg]
+\end{align}
+where:
+\begin{itemize}
+    \item The sum $\sum_{i_0}$ runs over massless partons, while $\sum_i$ runs over all partons.
+    \item The sum $\sum_{(i_0,j_0)}$ runs over distinct pairs of massless partons.
+    \item The sum $\sum_{(I,J)}$ runs over distinct pairs of massive partons.
+    \item The sum $\sum_{I,j_0}$ runs over mixed massive-massless pairs.
+\end{itemize}
+
+\subsubsection*{Kinematic Invariants}
+
+The Mandelstam-like kinematic invariants are defined as:
+\begin{align}
+    p_I^2 &= m_I^2, & v_I &= p_I/m_I, & v_{IJ} &= \sqrt{1 - \frac{m_I^2 m_J^2}{(p_I \cdot p_J)^2}}
+\end{align}
+where $I, J, K, \ldots$ denote indices for massive partons, while $i_0, j_0, k_0, \ldots$ denote massless partons.
+
+The invariant $s_{ij}$ is defined with an imaginary prescription:
+\begin{equation}
+    s_{ij} = 2\sigma_{ij}\, p_i \cdot p_j + i0^+
+\end{equation}
+where:
+\begin{equation}
+    \sigma_{ij} = \begin{cases}
+        +1 & \text{if } p_i \text{ and } p_j \text{ are both incoming or both outgoing} \\
+        -1 & \text{otherwise}
+    \end{cases}
+\end{equation}
+
+\subsubsection*{Color Charge Operators}
+
+The color charge operators $\mathbf{T}_i$ act on the color space of parton $i$:
+\begin{equation}
+    \langle c_1, \ldots, c_i, \ldots, c_n, c | \mathbf{T}_i | b_1, \ldots, b_i, \ldots, b_n \rangle = \langle c_1, \ldots, c_i, \ldots, c_n | T_i^c | b_1, \ldots, b_i, \ldots, b_n \rangle = \delta_{c_1 b_1} \cdots T^c_{c_i b_i} \cdots \delta_{c_n b_n}
+\end{equation}
+
+The generators $T^c_{c_1 c_2}$ depend on the parton type:
+\begin{align}
+    T^c_{c_1 c_2} &= i f^{c_1 c c_2} & &\text{(emitter is a gluon)} \\
+    T^c_{c_1 c_2} &= t^c_{c_1 c_2} = -t^c_{c_2 c_1} & &\text{(emitter is an outgoing quark/anti-quark)} \\
+    T^c_{c_1 c_2} &= -t^c_{c_2 c_1} = t^c_{c_1 c_2} & &\text{(emitter is an incoming quark/anti-quark)}
+\end{align}
+
+The color operators satisfy important identities:
+\begin{align}
+    \sum_i \mathbf{T}_i |\mathcal{M}_n\rangle &= 0, & T_i^c T_j^c &= \mathbf{T}_i \cdot \mathbf{T}_j = \mathbf{T}_j \cdot \mathbf{T}_i, & \mathbf{T}_i \cdot \mathbf{T}_i &= \mathbf{T}_i^2 = C_i = C_{a_i}
+\end{align}
+where the Casimir operators are:
+\begin{align}
+    C_g &= C_A, & C_q &= C_{\bar{q}} = C_F
+\end{align}
+and the trace normalization is:
+\begin{equation}
+    \text{Tr}[t^a t^b] = T_F \delta^{ab} = \frac{1}{2}\delta^{ab}
+\end{equation}
+
+\subsubsection*{Anomalous Dimensions}
+
+The leading-order anomalous dimensions appearing in the IR structure are:
+\begin{align}
+    \gamma_0^q &= -3 C_F & &\text{(massless quarks/anti-quarks)} \\
+    \gamma_0^Q &= -2 C_F & &\text{(massive quarks/anti-quarks)} \\
+    \gamma_0^g &= -\beta_0 = -\frac{11}{3} C_A + \frac{4}{3} T_F n_l & &\text{(gluons)}
+\end{align}
+
+The \texttt{ioperator} command computes the $\mathbf{I}$ operator contribution:
+\begin{lstlisting}
+glas> ioperator
+\end{lstlisting}
+
+This command:
+\begin{enumerate}
+    \item Generates \textsc{FORM} drivers for each pair of external partons $(i,j)$.
+    \item Computes the color-correlated Born amplitudes $\langle \mathcal{M}_0 | \mathbf{T}_i \cdot \mathbf{T}_j | \mathcal{M}_0 \rangle$.
+    \item Combines with the kinematic factors $(-s_{ij})^{-\epsilon}$.
+    \item Produces the integrated dipole contribution $\mathbf{I} \cdot |\mathcal{M}_0|^2$.
+\end{enumerate}
+
+The output files are:
+\begin{itemize}
+    \item \texttt{form/Files/Ioperator/I\{i\}x\{j\}.h}: Color-correlated contributions for parton pair $(i,j)$.
+    \item \texttt{form/Files/Ioperator/Ioperator\_master.h}: Combined $\mathbf{I}$ operator result.
+    \item \texttt{Mathematica/Files/Ioperator.m}: Mathematica-format output.
+\end{itemize}
+
+\subsection{Renormalized Virtual Amplitude}
+
+The complete renormalized one-loop amplitude is:
+\begin{equation}
+    2\,\Re(\mathcal{M}_0^* \mathcal{M}_1^{\text{fin}}) = 2\,\Re(\mathcal{M}_0^* \mathcal{M}_1^{\text{bare}}) - 2*\Re\left[\langle\mathcal{M}_0|\mathbf{I}|\mathcal{M}_0\rangle\right] + V^{\text{UV}}_{a_s}+V^{\text{UV}}_{\text{ext}_{hf}} + V^{\text{UV}}_{\text{m}} +V^{\text{UV}}_{\text{yuk}}
+\end{equation}
+which is free of both UV and IR poles and ready for numerical integration.
+
+The combination is performed automatically once all counterterm contributions have been computed, yielding the finite remainder of the amplitude. Since we work in CDR, both UV and IR counterterms are expanded up to order $\epsilon^0$.
+
+\subsection{Complete NLO Virtual Result}
+
+The full workflow for obtaining the finite virtual contribution for the process $q \bar{q} \rightarrow t \bar{t}$, for example, is:
+\begin{lstlisting}
+glas> generate q q~ > t t~ --jobs 4
+glas> evaluate nlo --jobs 4 --dirac
+glas> contract nlo --jobs 4
+glas> evaluate mct --jobs 4
+glas> contract mct --jobs 4
+glas> uvct
+glas> ioperator
+glas> extract topologies
+glas> ibp
+glas> reduce --jobs 4
+glas> micoef --jobs 4 [--combine]
+glas> linrels [--combine]
+glas> ratcombine
+\end{lstlisting}
+
+After these steps, the finite virtual matrix element squared is available for combination with real emission contributions computed using standard dipole subtraction.
+
+%=============================================================================
+
+
+%=============================================================================

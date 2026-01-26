@@ -1,0 +1,62 @@
+\section{Architecture}\label{sec:architecture}
+%=============================================================================
+
+\subsection{Run-Based Workflow}
+
+\textsc{GLAS} organizes all calculations around the concept of \emph{runs}. A run represents a complete calculation for a specific process and is stored in a dedicated directory under \texttt{runs/\{tag\}\_\{nnnn\}/}, where \texttt{tag} is derived from the process specification and \texttt{nnnn} is a zero-padded sequential counter.
+
+Each run directory contains:
+\begin{itemize}
+    \item \texttt{meta.json}: Process metadata including particle content, diagram counts, and job configuration.
+    \item \texttt{diagrams/}: \textsc{QGRAF} output files organized by loop order (\texttt{0l/}, \texttt{1l/}).
+    \item \texttt{form/}: \textsc{FORM} driver scripts and amplitude files.
+    \item \texttt{Mathematica/}: Scripts for topology extraction, IBP reduction, coefficient simplification, and utilities.
+    \item \texttt{logs/}: Execution logs organized by command.
+\end{itemize}
+
+The run metadata is stored in JSON format and tracks essential information:
+\begin{lstlisting}[language={}]
+{
+  "process": "g g > t t~",
+  "tag": "ggtT",
+  "n0l": 3,
+  "n1l": 28,
+  "mand_define": "#call mandelstam2x2(p1,p2,p3,p4)",
+  "gluon_refs": {"p1": "p3", "p2": "p4"},
+  "created_at_utc": "2026-01-23T12:00:00Z"
+}
+\end{lstlisting}
+
+\subsection{Directory Structure}
+
+The \textsc{GLAS} installation has the following structure:
+\begin{lstlisting}[language={}]
+glas/
+  glas.py                  # Entry point
+  glaslib/                 # Core library
+    cli.py                 # REPL command interface
+    commands/              # Command implementations
+    contracts/             # Amplitude contraction modules
+    core/                  # Utilities (parallel, paths, refs)
+  mathematica/scripts/     # Mathematica scripts
+  resources/
+    formlib/procedures/    # FORM procedure library
+    diagrams/              # QGRAF binary and style files
+  runs/                    # Output directories
+\end{lstlisting}
+
+\subsection{External Dependencies}
+
+\textsc{GLAS} requires the following external tools:
+\begin{itemize}
+    \item \textsc{QGRAF}~\cite{Nogueira:1991ex}: Feynman diagram generator.
+    \item \textsc{FORM}~\cite{Vermaseren:2000nd,Kuipers:2012rf}: Symbolic manipulation system.
+    \item \textsc{Mathematica}: For topology extraction and IBP reduction.
+    \item \textsc{FeynCalc}~\cite{Mertig:1990an}: Mathematica package for loop integrals.
+    \item \textsc{Blade}~\cite{Guan:2024byi}: IBP reduction package (a KIRA\cite{Maierhofer:2017gsa} integration is planned).
+    \item \textsc{Fermat}/\textsc{Singular}\cite{DGPS,Fermat}: Computer algebra backends.
+    \item \textsc{MultivariateApart}~\cite{Heller:2021qkz}: Package for multivariate partial fraction decomposition.
+    \item \textsc{FiniteFlow}~\cite{Peraro:2019svx}: Library for finite-field reconstruction.
+\end{itemize}
+
+%=============================================================================

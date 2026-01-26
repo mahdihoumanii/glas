@@ -1,0 +1,126 @@
+\section{Example: $gg \to t\bar{t}$ at NLO}
+\label{sec:example}
+%=============================================================================
+
+We illustrate the complete workflow for top quark pair production in gluon fusion:
+
+\begin{lstlisting}
+glas> generate g g > t t~ --jobs 3
+[generate] Created run: ggtT_0001
+[generate] n0l=3, n1l=28
+
+glas> evaluate lo --jobs 3
+[evaluate lo] All jobs finished OK.
+
+glas> evaluate nlo --jobs 3 --dirac
+[polarization] Gluon reference vectors / orthogonality choices
+  process     : g g > t t~
+  gluons @    : p1, p2
+  default ref : p1 (first massless momentum)
+  Tip: enter '2' for p2, or 'p2'. Empty -> default.
+
+Vector orthogonal to gluon p1 [default p1]: p2
+Vector orthogonal to gluon p2 [default p1]: p1
+
+[evaluate nlo] All jobs finished OK.
+[dirac nlo] All jobs finished OK.
+
+glas> evaluate mct
+[evaluate mct] All jobs finished OK.
+
+glas> contract lo --jobs 3
+[contract lo] All jobs finished OK.
+
+glas> contract nlo --jobs 3
+[contract nlo] All jobs finished OK.
+
+glas> contract mct --jobs 3
+[contract mct] All jobs finished OK.
+
+glas> uvct
+[start Vas] Vas.frm
+[done Vas]
+[start Vzt] Vzt.frm
+[done Vzt]
+[start Vg] Vg.frm
+[done Vg]
+[uvct] Completed.
+
+glas> extract topologies
+[extract] Running stage1...
+[extract] Stage1 OK
+[extract] Running extend.py...
+[extract] extend.py OK
+[extract] Running stage2...
+[extract] Stage2 OK
+[extract] Jobs (1-3): 3
+[extract] Running ToTopos with 3 parallel job(s)...
+[extract] ToTopos OK
+
+glas> ibp
+[ibp] Running mandIBP.m...
+[ibp] mandIBP.m OK -> Files/mands.m
+[ibp] Running IBP.m...
+[ibp] IBP.m OK -> Files/IBP/ (7 topology files)
+[ibp] Running SymmetryRelations.m...
+[ibp] SymmetryRelations.m OK -> Files/SymmetryRelations.m
+[ibp] Recorded nmis = 17 in meta.json
+[ibp] Also generated ../form/Files/MastersToSym.h (master integral substitution rules)
+
+
+glas> ioperator
+.
+.
+.
+[ioperator] Completed.
+
+glas> reduce --jobs 3
+[reduce] All reduction jobs finished OK.
+
+glas> micoef --combine --jobs 3 
+Running MasterCoefficients (3 jobs for 3 tree diagrams)...
+[micoef] MasterCoefficients finished OK.
+[micoef --combine] Running SumMasterCoefs (3 jobs for 17 master integrals)...
+[micoef --combine] SumMasterCoefs finished OK.
+
+glas> linrels --verbose 
+[linrels] Running LinearRelations.m ...
+[mma linrels] ******************
+[mma linrels] ******************
+[mma linrels] Total Number of Initial rational functions: 782 was reduced to 272 in the first step.
+[mma linrels] ******************
+[mma linrels] ******************
+[linrels] LinearRelations.m OK. 
+
+glas> ratcombine --verbose
+[ratcombine] Copied AmpResult4.m 
+[ratcombine] Running CombineRationalFunctions.m ...
+[mma ratcombine] Performing partial fractioning on the final independent rational functions.
+[ratcombine] OK -> Files/MasterCoefficients.m 
+[mma ratcombine] ******************
+[mma ratcombine] ******************
+[mma ratcombine] Total Number of rational functions: 782 was reduced to 142.
+[mma ratcombine] ******************
+[mma ratcombine] ******************
+[mma ratcombine] 
+
+\end{lstlisting}
+
+
+Finally one can run the example by going to \texttt{runs/\{ggtT\}\_\{0001\}/AmpResults4.m} and run the script to obtain: 
+\begin{lstlisting}
+Tree-level Comparison with madgraph: 1- amp/MGFinite = -3.55065*10^-7
+Pole Cancellation: Poles[-1]+ Poles[-2]+IR+UV = 0
+Finite contribution Comparison with madgraph: 1- amp/MGFinite = 8.77076*10^-14
+\end{lstlisting}
+
+
+
+The complete calculation produces:
+\begin{itemize}
+    \item 3 tree-level diagrams and 33 one-loop diagrams.
+    \item 7 independent loop topologies after completion.
+    \item 17 independent master integrals after IBP reduction.
+\end{itemize}
+
+%=============================================================================

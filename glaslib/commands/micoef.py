@@ -130,7 +130,39 @@ def run(state: AppState, arg: str) -> None:
 
         if ok_sum:
             print("[micoef --combine] SumMasterCoefs finished OK.")
+            _copy_amp_results5_if_needed(state.ctx.run_dir)
         else:
             print("[micoef --combine] SumMasterCoefs failed. Check logs.")
     else:
         print("[micoef] Run 'micoef --combine' to sum coefficients across diagrams.")
+
+
+def _copy_amp_results5_if_needed(run_dir) -> None:
+    """Copy AmpResult5.m -> process/mathematica/AmpResults5.m when n=5."""
+    import json
+    from pathlib import Path
+
+    run_dir = Path(run_dir)
+    meta_path = run_dir / "meta.json"
+    if not meta_path.exists():
+        print("[micoef --combine] Warning: meta.json not found, skipping AmpResults5.m copy.")
+        return
+
+    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    n_in = int(meta.get("n_in", 0) or 0)
+    n_out = int(meta.get("n_out", 0) or 0)
+    n_particles = n_in + n_out
+    if n_particles != 5:
+        return
+
+    repo_root = Path(__file__).resolve().parents[2]
+    src_script = repo_root / "mathematica" / "scripts" / "AmpResult5.m"
+    if not src_script.exists():
+        print("[micoef --combine] Warning: AmpResult5.m not found in mathematica/scripts.")
+        return
+
+    dst_dir = run_dir / "process" / "mathematica"
+    dst_dir.mkdir(parents=True, exist_ok=True)
+    dst_script = dst_dir / "AmpResults5.m"
+    dst_script.write_text(src_script.read_text(encoding="utf-8"), encoding="utf-8")
+    print(f"[micoef --combine] Copied AmpResult5.m -> {dst_script}")

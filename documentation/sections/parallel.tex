@@ -1,0 +1,15 @@
+\section{Parallel Execution}
+\label{sec:parallel}
+%=============================================================================
+
+\textsc{GLAS} implements parallel execution at the diagram level. When \texttt{--jobs K} is specified, the diagram range is partitioned into $K$ chunks, each processed by an independent \textsc{FORM} worker.
+
+The chunking algorithm ensures balanced workload:
+\begin{equation}
+    \text{chunk}(k) = \left[\left\lfloor\frac{(k-1)N}{K}\right\rfloor + 1, \left\lfloor\frac{kN}{K}\right\rfloor\right]
+\end{equation}
+where $N$ is the total number of diagrams and $k \in \{1,\ldots,K\}$.
+
+Each worker writes to separate output files, avoiding race conditions. The effective number of jobs is automatically clamped to the diagram count to prevent empty chunks.
+
+%=============================================================================

@@ -1,6 +1,21 @@
 #procedure rationals
 
     .sort 
+repeat id ep* den(-2+2 ep) = 1/2 + den(-1 + ep)/2;
+repeat id ep* den(2-2 ep) = -1/2 - den(-1 + ep)/2;
+
+repeat id ep* den(1-ep) = -1 - den(-1 + ep);
+repeat id ep* den(-1+ep) = 1 + den(-1 + ep);
+
+repeat id ep* den(3-2 ep) = -1/2 - (3*den(-3 + 2*ep))/2;
+repeat id ep* den(-3+2 ep) = 1/2 + (3*den(-3 + 2*ep))/2;
+
+repeat id ep* den(1-2 ep) = -1/2 - den(-1 + 2*ep)/2;
+repeat id ep* den(-1+2 ep) = 1/2 + den(-1 + 2*ep)/2;
+
+repeat id ep* den(ep) = 1;
+    .sort 
+
 repeat id den(?a) = tempden(?a,1);
 repeat id tempden(?a,x1?)*tempden(?a,x2?) = tempden(?a,x1+x2);
 id tempden(?a, x1?) = den(?a)*tempden(?a, x1-1);

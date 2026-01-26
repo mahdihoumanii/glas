@@ -4,10 +4,7 @@ CloseKernels[];
 
 (* Set working directory - wolframscript provides $InputFileName *)
 (* When run from runs/{run}/Mathematica/, script is in this directory *)
-
-
-
-If[$FrontEnd === Null, $InputFileName, NotebookFileName[]] // DirectoryName // SetDirectory;
+SetDirectory[DirectoryName[If[$FrontEnd === Null, $InputFileName, NotebookFileName[]]]];
 
 (* ===== Normalize environment + PATH ===== *)
 fermatPath = Environment["FERMATPATH"] /. $Failed -> "";

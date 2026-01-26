@@ -1,0 +1,22 @@
+\section{Conclusions}
+\label{sec:conclusions}
+%=============================================================================
+
+We have presented \textsc{GLAS}, a unified framework for automated NLO QCD calculations. The system integrates diagram generation, symbolic manipulation, integral reduction, renormalization, and coefficient simplification into a coherent pipeline with parallel execution capabilities.
+
+Key features include:
+\begin{itemize}
+    \item Run-based workflow with complete reproducibility.
+    \item Parallel execution at the diagram level.
+    \item Automated topology completion and IBP reduction.
+    \item $\overline{\text{MS}}$ renormalization with UV counterterm computation.
+    \item Finite field techniques for linear relation identification via \textsc{FiniteFlow}.
+    \item Verbose streaming mode for debugging and monitoring.
+    \item Modular architecture enabling easy extension.
+\end{itemize}
+
+The finite field approach implemented in the \texttt{linrels} command provides significant computational advantages for complex processes, enabling the simplification of master integral coefficients that would be intractable with purely symbolic methods.
+
+Future developments will include support for NNLO calculations, extended renormalization schemes, and integration with Monte Carlo event generators for phenomenological applications.
+
+%=============================================================================

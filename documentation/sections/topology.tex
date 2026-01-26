@@ -1,0 +1,53 @@
+\section{Topology Extraction}\label{sec:topology}
+%=============================================================================
+
+After contraction, the NLO amplitude contains scalar Feynman integrals that must be identified and reduced. The topology extraction proceeds in four stages.
+
+\subsection{Stage 1: Incomplete Topology Identification}
+
+The Mathematica script \texttt{extract\_topologies\_stage1.m} loads the contracted amplitudes and identifies the propagator structures. Each loop integral is characterized by its set of propagators:
+\begin{equation}
+    I[\{q_1^2-m_1^2, q_2^2-m_2^2, \ldots\}] = \int \frac{\mathrm{d}^D \ell}{(2\pi)^D} \frac{1}{(q_1^2-m_1^2)(q_2^2-m_2^2)\cdots}
+\end{equation}
+where the $q_i$ are linear combinations of the loop momentum $\ell$ and external momenta. This step is done in \texttt{FeynCalc} to extract and identify topologies.
+
+The output is a list of ``incomplete'' topologies---propagator sets that may not span the full space needed for IBP reduction.
+
+\subsection{Stage 2: Topology Completion}
+
+The Python script \texttt{extend.py} completes each topology by adding auxiliary propagators. For a one-loop amplitude with $n$ external legs, a complete topology requires $n+1$ propagators (one more than the number of independent scalar products).
+
+The completion algorithm uses breadth-first search (BFS) on an integer lattice where each node represents a shift vector for the propagator momentum:
+\begin{equation}
+    q = \ell + \sum_{i=1}^{n-1} a_i p_i, \quad a_i \in \mathbb{Z}
+\end{equation}
+
+The algorithm prioritizes:
+\begin{enumerate}
+    \item Filling gaps between existing propagators if the path includes missing momentum directions.
+    \item Adding propagators from endpoints in directions not yet covered.
+\end{enumerate}
+
+This ensures that the completed topology has propagators depending on all external momentum directions, which is essential for a valid IBP reduction.
+
+\subsection{Stage 2b: Topology Mapping}
+
+The script \texttt{extract\_topologies\_stage2.m} maps the amplitude integrals onto the completed topologies using \textsc{FeynCalc}'s \texttt{FCLoopFindTopologies} and related functions. The output includes:
+\begin{itemize}
+    \item \texttt{Files/integrals.m}: Integral definitions in Mathematica format.
+    \item \texttt{form/Files/intrule.h}: \textsc{FORM}-formatted substitution rules.
+\end{itemize}
+
+\subsection{Stage 3: Parallel FORM Processing}
+
+The final topology extraction stage processes the mapped integrals in parallel using \textsc{FORM}. The \texttt{ToTopos\_J\{k\}of\{N\}.frm} drivers:
+\begin{enumerate}
+    \item Load the integral rules from \texttt{intrule.h}.
+    \item Apply substitutions to express all integrals in terms of standard topology notation.
+    \item Write output to \texttt{Files/M0M1top/d\{i\}x\{j\}.h}.
+\end{enumerate}
+This stage is executed by the command:
+\begin{lstlisting}
+glas> extract topologies
+\end{lstlisting}
+%=============================================================================

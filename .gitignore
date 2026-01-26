@@ -50,7 +50,9 @@ form/
 
 # But keep the example run
 !runs/qQtT/
+!runs/ggtT/
 !runs/qQtT/**
+!runs/ggtT/**
 
 # ---- GLAS ----
 .github/copilot-instructions.md

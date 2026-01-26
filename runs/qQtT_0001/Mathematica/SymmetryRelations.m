@@ -1,4 +1,4 @@
-If[$FrontEnd === Null, $InputFileName, NotebookFileName[]] // DirectoryName // SetDirectory;
+SetDirectory[DirectoryName[If[$FrontEnd === Null, $InputFileName, NotebookFileName[]]]];
 
 <<FeynCalc`
 Get["Files/integrals.m"]

@@ -47,11 +47,11 @@ FindLinearRelations[rats_] := Module[
   FFAlgSubgraphFit[graphFit, fit, {}, graph, vars, sortedCoefficients];
   FFGraphOutput[graphFit, fit];
   Print["Learning Linear System of equations"]; 
-  fitLearn = FFSparseSolverLearn[graphFit, sortedCoefficients];
+  fitLearn = FFDenseSolverLearn[graphFit, sortedCoefficients];
   Print["Reconstructing numeric Linear System of equations"]; 
   fitRec = FFReconstructNumeric[graphFit];
   Print["Solving numeric Linear System of equations"];
-  fitSol = FFSparseSolverSol[fitRec, fitLearn];
+  fitSol = FFDenseSolverSol[fitRec, fitLearn];
   Print["Finding linear relations"]; 
   linrels = FFLinearRelationsFromFit[sortedFunctions, sortedCoefficients, fitSol];
 
@@ -72,6 +72,7 @@ FindLinearRelations[rats_] := Module[
   ruleMap = Thread[Rule[rats, functions]];
 
   FFDeleteGraph[graph];
+  Print["independent functions reconstructed."]; 
 
   <|
     "functions" -> functions,
@@ -95,19 +96,20 @@ name = meta["loop_main"];
 
 
 Print["Loading master coefficients..."];
-Do[Get["Files/MasterCoefficients/mi"<>ToString[i]<>"/MasterCoefficient"<>ToString[i]<>".m"],{i, nmis}]
+Do[Get["Files/MasterCoefficients/MasterCoefficient"<>ToString[i]<>".m"],{i, nmis}]
 
 Print["Combining all rational functions..."];
 indepFun = (Table[indepRules[i], {i,nmis}] // Flatten)[[All, 2]];
 FinalFun = FindLinearRelations[indepFun];
 indepF = (Table[indepRules[i], {i, nmis}] // Flatten)[[All, 1]];
 indepToFinal = Thread[Rule[indepF, FinalFun[[1]] /. FinalFun[[3]]]];
+Print["Performing partial fractioning on the final independent rational functions."]; 
 
-SymbolicOut = Thread[Rule[FinalFun[[5]][[All, 1]], FinalFun[[5]][[All, 2]] // MultivariatePassToSingular]];
+SymbolicOut = Thread[Rule[FinalFun[[5]][[All, 1]], MultivariatePassToSingular/@FinalFun[[5]][[All, 2]]]];
 
 Do[
-  FinalMiCoef[i] = MICoef[i] //. indepToFinal /. den[a_] :> 1/a //
-    CollectFlat[#, {gs, A0[__], B0[__], C0[__], D0[__], nh, nl, f[_]}, MultivariatePassToSingular] &;
+  FinalMiCoef[i] = MICoef[i] //. indepToFinal//
+    CollectFlat[#, {gs, A0[__], B0[__], C0[__], D0[__], nh, nl, f[_],den[__]}] &;
 , {i, nmis}];
 
 Print["Writing final result..."];
@@ -119,3 +121,8 @@ WriteString[file, "RatFun", "= ", ToString[SymbolicOut //. den[a_] :> 1/a, Input
 Close[file];
 
 Print["Done. -> Files/MasterCoefficients.m"];
+lenorigin = Get["Files/indeplen.m"];
+DeleteFile["Files/indeplen.m"]
+
+Print["\n******************\n******************\nTotal Number of rational functions ", lenorigin," was reduced to ",Length[FinalFun[[2]]],"."];
+Print["******************\n******************\n"];

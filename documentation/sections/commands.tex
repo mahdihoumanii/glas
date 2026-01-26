@@ -1,0 +1,54 @@
+\section{Command Reference}
+\label{sec:commands}
+%=============================================================================
+
+\subsection{Core Commands}
+
+\begin{itemize}
+    \item \texttt{generate \textit{process}}: Generate diagrams and initialize a new run.
+    \item \texttt{evaluate \{lo|nlo|mct\}}: Apply Feynman rules and kinematics to diagram amplitudes.
+    \item \texttt{contract \{lo|nlo|mct\}}: Square amplitudes and sum over colors and helicities.
+    \item \texttt{uvct}: Compute UV counterterms.
+    \item \texttt{extract topologies}: Identify and complete loop topologies.
+    \item \texttt{ibp}: Perform IBP reduction (mandIBP, IBP, SymmetryRelations).
+    \item \texttt{reduce}: Apply reduction rules to contracted amplitudes.
+    \item \texttt{micoef}: Extract master-integral coefficients; use \texttt{--combine} to sum across diagrams.
+    \item \texttt{linrels}: Find linear relations between coefficients; use \texttt{--combine} to merge results.
+    \item \texttt{ratcombine}: Combine rational functions across coefficients.
+    \item \texttt{ioperator}: Apply IR subtraction operators.
+\end{itemize}
+
+\subsection{Utility Commands}
+
+\begin{itemize}
+    \item \texttt{runs [\textit{tag}]}: List available runs, optionally filtered by tag.
+    \item \texttt{use \textit{run}}: Attach to an existing run directory.
+    \item \texttt{show}: Display current configuration and active run metadata.
+    \item \texttt{setrefs}: Set gluon polarization references for external gluons.
+    \item \texttt{verbose [on|off]}: Toggle verbose output streaming.
+    \item \texttt{clean}: Delete all run directories.
+\end{itemize}
+
+\subsection{Common Flags}
+
+All commands support the following flags:
+\begin{itemize}
+    \item \texttt{--jobs K}: Number of parallel workers (default: 1).
+    \item \texttt{--verbose}: Enable live output streaming.
+    \item \texttt{--quiet}: Suppress verbose output.
+\end{itemize}
+
+The \texttt{evaluate} command additionally supports \texttt{--dirac} for simultaneous Dirac simplification.
+
+\subsection{Verbose Mode}
+
+When verbose mode is enabled (either per-command with \texttt{--verbose} or globally with \texttt{verbose on}), all subprocess output is streamed live to the terminal with informative prefixes:
+\begin{lstlisting}
+[form eval lo J1/4] Processing diagram 1...
+[mma stage1] Loading FeynCalc...
+[py extend] Extending topology 3 of 5...
+\end{lstlisting}
+
+Logs are always written to \texttt{logs/\{command\}/\{step\}.log} regardless of verbose setting.
+
+%=============================================================================

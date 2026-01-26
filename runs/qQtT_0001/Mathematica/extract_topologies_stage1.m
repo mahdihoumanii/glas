@@ -1,6 +1,6 @@
 (* FeynCalc topology extraction stage 1 (meta.json driven) *)
 
-If[$FrontEnd === Null, $InputFileName, NotebookFileName[]] // DirectoryName // SetDirectory;
+SetDirectory[DirectoryName[If[$FrontEnd === Null, $InputFileName, NotebookFileName[]]]];
 
 (* -------- Load meta.json -------- *)
 meta = Import["../meta.json", "RawJSON"];

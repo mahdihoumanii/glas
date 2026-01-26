@@ -1,0 +1,27 @@
+\section{Introduction}\label{sec:intro}
+%=============================================================================
+
+Precision predictions for hadron collider observables require the computation of scattering amplitudes at next-to-leading order (NLO) and beyond in the strong coupling expansion. While significant progress has been achieved in automating such calculations~\cite{Signer:2008va,Frixione:2007vw,Alwall:2014hca}, the workflow remains technically demanding, involving multiple specialized tools that must be orchestrated carefully.
+
+The typical NLO calculation pipeline consists of several stages:
+\begin{enumerate}
+    \item \textbf{Diagram generation}: Enumeration of all Feynman diagrams contributing at a given loop order.
+    \item \textbf{Amplitude construction}: Application of Feynman rules to obtain algebraic expressions.
+    \item \textbf{Amplitude manipulation}: Dirac algebra, color algebra, and kinematic simplifications.
+    \item \textbf{Integral identification}: Extraction of loop integral topologies from the amplitude.
+    \item \textbf{Integral reduction}: Reduction to master integrals via integration-by-parts (IBP) identities.
+    \item \textbf{Renormalization}: Renormalization of UV and IR terms.
+    \item \textbf{Master integral evaluation}: Numerical or analytical computation of the master integrals.
+\end{enumerate}
+
+\textsc{GLAS} addresses stages 1--7 by providing a unified command-line interface that automates the workflow and manages intermediate results. The system is designed with the following principles:
+\begin{itemize}
+    \item \textbf{Modularity}: Each stage is implemented as a separate module with well-defined interfaces.
+    \item \textbf{Parallelism}: Computationally intensive tasks are distributed across multiple cores.
+    \item \textbf{Reproducibility}: All intermediate results are stored in structured run directories.
+    \item \textbf{Extensibility}: New processes and models can be added through configuration files.
+\end{itemize}
+
+This report is organized as follows. In Section~\ref{sec:architecture} we describe the overall architecture and run-based workflow. Section~\ref{sec:pipeline} details the three-phase calculation pipeline. The topology extraction algorithm is presented in Section~\ref{sec:topology}, followed by the IBP reduction procedure in Section~\ref{sec:ibp}. Section~\ref{sec:renormalization} discusses UV renormalization and counterterm computation. The finite field approach for linear relation identification is detailed in Section~\ref{sec:linrels}. We discuss the command interface in Section~\ref{sec:commands} and conclude in Section~\ref{sec:conclusions}.
+
+%=============================================================================

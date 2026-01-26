@@ -1,0 +1,77 @@
+\section{IBP Reduction}\label{sec:ibp}
+%=============================================================================
+
+The IBP reduction stage reduces all loop integrals to a minimal set of master integrals using integration-by-parts identities~\cite{Chetyrkin:1981qh,Tkachov:1981wb}.
+
+\subsection{Mandelstam Preparation}
+
+The script \texttt{mandIBP.m} computes the kinematic replacements needed for the reduction, storing results in \texttt{Files/mands.m}.
+For 5 particle processes the Mandelstam variables are the set: 
+\begin{equation}
+    \{s_{12},s_{23},s_{34},s_{45},s_{15}\},
+\end{equation}
+
+and for 4 particle processes the Mandelstam variables are the set: 
+\begin{align}
+    &\{s_{12},s_{13},s_{14}\}\quad \text{where }\\
+    &s_{14} = \sum_i^4 m_i^2 - s_{12}-s_{13},
+\end{align}
+and the mandelstam variables are defined as: 
+\begin{align}
+    s_{ij} &= (p_i + p_j) \quad \text{if both momenta are incoming/outgoing} \\
+    s_{ij} &= (p_i - p_j) \quad \text{if one of momenta is incoming and the other one is outgoing} 
+\end{align}
+with on-shell external momenta $p_i\cdot p_i=m_i^2$.
+\subsection{IBP Reduction with Blade}
+
+The main reduction is performed by \texttt{IBP.m} using the \textsc{Blade} package. For each topology $T_i$, the reduction produces:
+\begin{equation}
+    I_{T_i}[\{n_1,n_2,\ldots\}] = \sum_j c_j(\epsilon, s_{ij}, m^2) \, M_j
+\end{equation}
+where $M_j$ are master integrals and $c_j$ are rational functions of the kinematic invariants and the dimensional regulator $\epsilon = (4-D)/2$.
+
+The output includes:
+\begin{itemize}
+    \item \texttt{Files/IBP/IBP\{i\}.m}: Mathematica-format reduction rules.
+    \item \texttt{form/Files/IBP/IBP\{i\}.h}: \textsc{FORM}-format reduction rules.
+\end{itemize}
+This workflow targets massive five-point amplitudes. IBP reduction can be expensive, so the top-quark mass is set to one to accelerate finite-field reconstruction of the IBP relations. After the reduction, the mass is restored by dimensional analysis (see the \texttt{RestoreMass} function in \texttt{glas/mathematica/scripts/IBP.m}). The result is then partially fractioned using \texttt{MultivariateApart}; \texttt{MultivariatePassToSingular} computes a Groebner basis in \texttt{Singular} and performs the reduction in \texttt{FORM}.
+
+\subsection{Symmetry Relations and PaVe Conversion}
+
+The script \texttt{SymmetryRelations.m} identifies relations between master integrals from different topologies and converts to the standard Passarino-Veltman (PaVe) basis~\cite{Passarino:1978jh}. The output includes:
+\begin{itemize}
+    \item \texttt{Files/SymmetryRelations.m}: Master integral list and PaVe rules.
+    \item \texttt{form/Files/SymmetryRelations.h}: \textsc{FORM} substitution rules.
+    \item \texttt{form/Files/MastersToSym.h}: Symbolic master integral identifiers.
+\end{itemize}
+
+
+This pipeline is executed with:
+\begin{lstlisting}
+glas> ibp
+\end{lstlisting}
+
+\subsection{Master Integral Coefficient Extraction}
+
+The \texttt{reduce} command applies the IBP reduction rules via:
+\begin{lstlisting}
+glas> reduce --jobs 4
+\end{lstlisting}
+
+The \texttt{reduce} command applies the IBP relations to the contracted amplitude and saves the results in:
+\begin{itemize}
+    \item \texttt{Mathematica/Files/M0M1Reduced/}
+\end{itemize}
+The master-integral coefficients are then extracted with:
+
+\begin{lstlisting}
+glas> micoef --jobs 4 [--combine]
+\end{lstlisting}
+
+This writes the coefficients of the master integrals as:
+\begin{itemize}
+    \item \texttt{form/Files/MasterCoefs/c\{i\}.h}: Coefficient of master integral $i$.
+    \item \texttt{Mathematica/Files/MasterCoefficients/mi\{i\}/MasterCoefficient\{i\}.m}: Per-master coefficients and independent-basis rules.
+    \item \texttt{Mathematica/Files/MasterCoefficients.m}: Combined coefficient file if the \texttt{--combine} flag is used.
+\end{itemize}
