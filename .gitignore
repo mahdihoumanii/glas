@@ -1,0 +1,58 @@
+# ---- OS ----
+.DS_Store
+Thumbs.db
+
+# ---- Editors / IDEs ----
+.vscode/
+.idea/
+*.swp
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+.venv/
+venv/
+ENV/
+env/
+
+# ---- Jupyter ----
+.ipynb_checkpoints/
+
+# ---- Node / JS ----
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+dist/
+build/
+
+# ---- Logs ----
+*.log
+
+# ---- Local history / temp ----
+.history/
+*.tmp
+*.temp
+# Ignore all run outputs
+runs/*
+form/
+
+# But keep the example run
+!runs/qQtT/
+!runs/ggtT/
+!runs/qQtT/**
+!runs/ggtT/**
+
+# ---- GLAS ----
+.github/copilot-instructions.md
