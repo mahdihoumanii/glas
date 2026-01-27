@@ -8,26 +8,50 @@ import subprocess
 import sys
 from pathlib import Path
 
-from glaslib.commands.common import AppState, parse_simple_flags, update_meta
+from glaslib.commands.common import AppState, update_meta
 from glaslib.core.logging import LOG_SUBDIR_EXTRACT, LOG_SUBDIR_IBP, LOG_SUBDIR_TOPOFORMAT, ensure_logs_dir
 from glaslib.core.parallel import run_jobs
 from glaslib.core.proc import get_project_python, run_streaming
 from glaslib.topoformat import prepare_topoformat_project
 
 
-def run(state: AppState, arg: str) -> None:
-    # Parse --verbose flag
-    target, verbose = parse_simple_flags(arg)
-    target = target.strip().lower()
+def _parse_extract_args(arg: str) -> tuple[str, bool, bool]:
+    toks = shlex.split(arg)
+    verbose = False
+    delete = False
+    target_parts = []
+    i = 0
+    while i < len(toks):
+        t = toks[i]
+        if t in ("--verbose", "-v"):
+            verbose = True
+            i += 1
+            continue
+        if t == "--delete":
+            delete = True
+            i += 1
+            continue
+        if t.startswith("-"):
+            raise ValueError(f"Unknown flag: {t}")
+        target_parts.append(t)
+        i += 1
+    return " ".join(target_parts).strip().lower(), verbose, delete
 
-    # Also check state.verbose
+
+def run(state: AppState, arg: str) -> None:
+    try:
+        target, verbose, delete = _parse_extract_args(arg)
+    except ValueError as exc:
+        print(f"Usage: extract topologies [--delete] [--verbose] ({exc})")
+        return
+
     verbose = verbose or state.verbose
 
     if not target:
-        print("Usage: extract topologies [--verbose]")
+        print("Usage: extract topologies [--delete] [--verbose]")
         return
     if target != "topologies":
-        print("Usage: extract topologies [--verbose]")
+        print("Usage: extract topologies [--delete] [--verbose]")
         return
     if not state.ensure_run():
         return
@@ -174,7 +198,7 @@ def run(state: AppState, arg: str) -> None:
         print("[extract] Warning: lenTopos.txt not found; ntop not recorded. Run extract_topologies_stage2.m output check.")
 
     print("[extract] Stage 3: Topology formatting with FORM (ToTopos)...")
-    _run_topos_extraction(state, run_dir, repo_root, verbose=verbose)
+    _run_topos_extraction(state, run_dir, repo_root, verbose=verbose, delete_m0m1=delete)
 
 
 def ibp(state: AppState, arg: str) -> None:
@@ -325,7 +349,13 @@ def ibp(state: AppState, arg: str) -> None:
         print("[ibp] Also generated ../form/Files/MastersToSym.h (master integral substitution rules)")
 
 
-def _run_topos_extraction(state: AppState, run_dir: Path, repo_root: Path, verbose: bool = False) -> None:
+def _run_topos_extraction(
+    state: AppState,
+    run_dir: Path,
+    repo_root: Path,
+    verbose: bool = False,
+    delete_m0m1: bool = False,
+) -> None:
     """
     Stage 3: Run ToTopos FORM driver in parallel to format topology integrals.
     
@@ -420,4 +450,13 @@ def _run_topos_extraction(state: AppState, run_dir: Path, repo_root: Path, verbo
         m_files = list(m0m1top_math.glob("*.m"))
         if m_files:
             print(f"[extract] Also generated Mathematica files -> ../Mathematica/Files/M0M1top/ ({len(m_files)} .m files)")
+    if delete_m0m1:
+        m0m1_form = form_dir / "Files" / "M0M1"
+        m0m1_math = run_dir / "Mathematica" / "Files" / "M0M1"
+        if m0m1_form.exists():
+            shutil.rmtree(m0m1_form)
+            print(f"[extract] Deleted {m0m1_form}")
+        if m0m1_math.exists():
+            shutil.rmtree(m0m1_math)
+            print(f"[extract] Deleted {m0m1_math}")
     print("[extract] Topology extraction complete!")

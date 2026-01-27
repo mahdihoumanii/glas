@@ -26,7 +26,7 @@
     \item \texttt{RationalFunction.prc}: Simplifies \texttt{den(x)*x = 1} if x is a combination of terms (e.g. $s_{12}*den(s_{12}-m_t^2) - m_t^2*den(s_{12}-m_t^2) = 1$). And this is done for each denominator alone.
     \item \texttt{PolyRat.prc}: Promotes selected symbols to rational form and expands \texttt{rat} objects into \texttt{den}-based expressions.
     \item \texttt{Together.prc}: Takes common denominator and keeps the output in terms of the \texttt{FORM PolyRatFun rat(num,den)}.
-    \item \texttt{rationals.prc}: Groups identical denominators, builds polynomial rational functions, and normalizes \texttt{Rat} structures before applying \texttt{linrels}.
+    \item \texttt{rationals.prc}: Groups identical denominators, builds polynomial rational functions like \eqref{den_group} before applying \texttt{linrels}.
     \item \texttt{toden.prc}: Rewrites inverse kinematic invariants into explicit denominator factors.
 \end{itemize}
 

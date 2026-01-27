@@ -9,15 +9,16 @@ from glaslib.core.parallel import run_jobs
 from glaslib.reduce import prepare_micoef_project
 
 
-def _parse_args(arg: str) -> Tuple[Optional[int], bool, bool]:
+def _parse_args(arg: str) -> Tuple[Optional[int], bool, bool, bool]:
     """Parse micoef arguments.
     
     Returns:
-        (jobs, combine, verbose)
+        (jobs, combine, delete, verbose)
     """
     toks = shlex.split(arg)
     jobs: Optional[int] = None
     combine: bool = False
+    delete: bool = False
     verbose: bool = False
     i = 0
     while i < len(toks):
@@ -32,6 +33,10 @@ def _parse_args(arg: str) -> Tuple[Optional[int], bool, bool]:
             combine = True
             i += 1
             continue
+        if t == "--delete":
+            delete = True
+            i += 1
+            continue
         if t in ("--verbose", "-v"):
             verbose = True
             i += 1
@@ -41,7 +46,7 @@ def _parse_args(arg: str) -> Tuple[Optional[int], bool, bool]:
             i += 1
             continue
         i += 1
-    return jobs, combine, verbose
+    return jobs, combine, delete, verbose
 
 
 def _resolve_jobs(state: AppState, jobs: Optional[int]) -> int:
@@ -61,13 +66,13 @@ def run(state: AppState, arg: str) -> None:
     Run the micoef command (master integral coefficient extraction).
     
     Usage:
-        micoef [--jobs K] [--verbose]           - Run MasterCoefficients only (parallelized by nmis)
-        micoef --combine [--jobs K] [--verbose] - Run MasterCoefficients + SumMasterCoefs
+        micoef [--jobs K] [--verbose]                    - Run MasterCoefficients only (parallelized by nmis)
+        micoef --combine [--jobs K] [--delete] [--verbose] - Run MasterCoefficients + SumMasterCoefs
     """
     try:
-        jobs_opt, combine, verbose = _parse_args(arg)
+        jobs_opt, combine, delete, verbose = _parse_args(arg)
     except ValueError as exc:
-        print(f"Usage: micoef [--jobs K] [--combine] [--verbose] ({exc})")
+        print(f"Usage: micoef [--jobs K] [--combine] [--delete] [--verbose] ({exc})")
         return
 
     verbose = verbose or state.verbose
@@ -131,6 +136,8 @@ def run(state: AppState, arg: str) -> None:
         if ok_sum:
             print("[micoef --combine] SumMasterCoefs finished OK.")
             _copy_amp_results5_if_needed(state.ctx.run_dir)
+            if delete:
+                _delete_m0m1_reduced(state.ctx.run_dir)
         else:
             print("[micoef --combine] SumMasterCoefs failed. Check logs.")
     else:
@@ -166,3 +173,19 @@ def _copy_amp_results5_if_needed(run_dir) -> None:
     dst_script = dst_dir / "AmpResults5.m"
     dst_script.write_text(src_script.read_text(encoding="utf-8"), encoding="utf-8")
     print(f"[micoef --combine] Copied AmpResult5.m -> {dst_script}")
+
+
+def _delete_m0m1_reduced(run_dir) -> None:
+    """Delete M0M1Reduced outputs to save space."""
+    from pathlib import Path
+    import shutil
+
+    run_dir = Path(run_dir)
+    m0m1red_form = run_dir / "form" / "Files" / "M0M1Reduced"
+    m0m1red_math = run_dir / "Mathematica" / "Files" / "M0M1Reduced"
+    if m0m1red_form.exists():
+        shutil.rmtree(m0m1red_form)
+        print(f"[micoef --combine] Deleted {m0m1red_form}")
+    if m0m1red_math.exists():
+        shutil.rmtree(m0m1red_math)
+        print(f"[micoef --combine] Deleted {m0m1red_math}")

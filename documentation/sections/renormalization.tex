@@ -93,7 +93,7 @@ where $\mathcal{M}_1^{\text{fin}}$ is the finite remainder and $\mathbf{I}(\epsi
 
 The matrix element of the $\mathbf{I}$ operator for the interference with the tree-level amplitude reads \cite{Czakon:2014oma}:
 \begin{align}
-    2\,\Re\langle \mathcal{M}^{(0)}_{n+1} | \mathbf{I} | \mathcal{M}^{(0)}_{n+1} \rangle &= \frac{\alpha_s}{4\pi} \frac{1}{\epsilon} \Bigg[ \left( -\frac{2}{\epsilon} \sum_{i_0} C_{i_0} + \sum_i \gamma_0^i \right) |\mathcal{M}^{(0)}_{n+1}|^2 \nonumber \\
+    2\,\Re\langle \mathcal{M}^{(0)} | \mathbf{I} | \mathcal{M}^{(0)} \rangle &= \frac{\alpha_s}{4\pi} \frac{1}{\epsilon} \Bigg[ \left( -\frac{2}{\epsilon} \sum_{i_0} C_{i_0} + \sum_i \gamma_0^i \right) |\mathcal{M}^{(0)}_{n+1}|^2 \nonumber \\
     &\quad + 2 \sum_{(i_0,j_0)} \ln\left| \frac{\mu_R^2}{s_{i_0 j_0}} \right| \langle \mathcal{M}^{(0)}_{n+1} | \mathbf{T}_{i_0} \cdot \mathbf{T}_{j_0} | \mathcal{M}^{(0)}_{n+1} \rangle \nonumber \\
     &\quad - \sum_{(I,J)} \frac{1}{v_{IJ}} \ln\left( \frac{1 + v_{IJ}}{1 - v_{IJ}} \right) \langle \mathcal{M}^{(0)}_{n+1} | \mathbf{T}_I \cdot \mathbf{T}_J | \mathcal{M}^{(0)}_{n+1} \rangle \nonumber \\
     &\quad + 4 \sum_{I,j_0} \ln\left| \frac{m_I \mu_R}{s_{I j_0}} \right| \langle \mathcal{M}^{(0)}_{n+1} | \mathbf{T}_I \cdot \mathbf{T}_{j_0} | \mathcal{M}^{(0)}_{n+1} \rangle \Bigg]
@@ -171,8 +171,7 @@ This command:
 \begin{enumerate}
     \item Generates \textsc{FORM} drivers for each pair of external partons $(i,j)$.
     \item Computes the color-correlated Born amplitudes $\langle \mathcal{M}_0 | \mathbf{T}_i \cdot \mathbf{T}_j | \mathcal{M}_0 \rangle$.
-    \item Combines with the kinematic factors $(-s_{ij})^{-\epsilon}$.
-    \item Produces the integrated dipole contribution $\mathbf{I} \cdot |\mathcal{M}_0|^2$.
+    \item Produces the integrated dipole contribution $2\,\Re\langle \mathcal{M}^{(0)} | \mathbf{I} | \mathcal{M}^{(0)}\rangle$.
 \end{enumerate}
 
 The output files are:
