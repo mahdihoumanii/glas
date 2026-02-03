@@ -8,10 +8,11 @@ and IBP tools with optional verbose streaming to terminal.
 from __future__ import annotations
 
 import os
+import shlex
 import sys
 import threading
 from pathlib import Path
-from subprocess import PIPE, Popen
+from subprocess import DEVNULL, PIPE, Popen
 from typing import Dict, List, Optional, TextIO
 
 
@@ -60,6 +61,8 @@ def run_streaming(
     Returns:
         Exit code of the process
     """
+    import subprocess
+    
     # Build environment: inherit os.environ, overlay with env overrides
     full_env = os.environ.copy()
     # Set PYTHONUNBUFFERED by default for Python subprocesses
@@ -69,16 +72,37 @@ def run_streaming(
         full_env.update(env)
 
     # Create log directory if needed
-    log_file: Optional[TextIO] = None
     if log_path is not None:
         log_path.parent.mkdir(parents=True, exist_ok=True)
-        log_file = open(log_path, "a", encoding="utf-8")
+
+    # For non-verbose mode, use shell execution to completely isolate from Python
+    if not verbose:
+        # Build shell command with proper escaping
+        cmd_str = " ".join(shlex.quote(c) for c in cmd)
+        log_str = shlex.quote(str(log_path)) if log_path else "/dev/null"
+        
+        # Use shell to run command with stdin closed and output redirected
+        # This completely bypasses Python's file descriptor handling
+        shell_cmd = f"cd {shlex.quote(str(cwd))} && {cmd_str} </dev/null >{log_str} 2>&1"
+        
+        rc = os.system(shell_cmd)
+        # os.system returns the exit status in the format returned by wait()
+        # Need to extract the actual exit code
+        if os.WIFEXITED(rc):
+            return os.WEXITSTATUS(rc)
+        return 1  # Signal or other abnormal termination
+
+    # Verbose mode: use Popen with streaming threads
+    log_file: Optional[TextIO] = None
+    if log_path is not None:
+        log_file = open(log_path, "w", encoding="utf-8")
 
     try:
         proc = Popen(
             cmd,
             cwd=str(cwd),
             env=full_env,
+            stdin=DEVNULL,  # Prevent subprocess from reading parent's stdin
             stdout=PIPE,
             stderr=PIPE,
             text=True,

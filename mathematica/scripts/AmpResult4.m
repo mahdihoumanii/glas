@@ -50,8 +50,6 @@ norm= 1/2/2/8/8;
 ];
 
 
-1-Born/BornMG
-
 
 Num[expr_]:= (expr/. nh-> 1/. nl-> 5/. ieps-> 10^-12)/.num;
 

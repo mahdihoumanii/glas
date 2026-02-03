@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from glaslib.commands.common import AppState, update_meta
+from glaslib.commands.common import AppState, parse_simple_flags, update_meta
 from glaslib.core.logging import LOG_SUBDIR_EXTRACT, LOG_SUBDIR_IBP, LOG_SUBDIR_TOPOFORMAT, ensure_logs_dir
 from glaslib.core.parallel import run_jobs
 from glaslib.core.proc import get_project_python, run_streaming
