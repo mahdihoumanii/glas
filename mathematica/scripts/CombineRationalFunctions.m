@@ -107,6 +107,11 @@ Print["Performing partial fractioning on the final independent rational function
 
 SymbolicOut = Thread[Rule[FinalFun[[5]][[All, 1]], MultivariatePassToSingular/@FinalFun[[5]][[All, 2]]]];
 
+file = OpenWrite["Files/LinearRelations.m"];
+WriteString[file, "LinearRelations = ", ToString[indepToFinal],";\n"];
+WriteString[file, "SymbolicIndep = ", ToString[SymbolicOut],";\n"];
+Close[file];
+
 Do[
   FinalMiCoef[i] = MICoef[i] //. indepToFinal//
     CollectFlat[#, {gs, A0[__], B0[__], C0[__], D0[__], nh, nl, f[_],den[__]}] &;
