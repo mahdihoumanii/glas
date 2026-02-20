@@ -30,11 +30,15 @@ n0l = meta["n0l"];
 n1l = meta["n1l"];
 parts = meta["particles"];
 n = meta["n_in"] + meta["n_out"];
+modelId = Lookup[meta, "model_id", "qcd_massive"];
 
 moms = ToExpression /@ parts[[All, "momentum"]];
 incoming = ToExpression /@ (Select[parts, #["side"] == "in" &][[All, "momentum"]]);
 outgoing = ToExpression /@ (Select[parts, #["side"] == "out" &][[All, "momentum"]]);
-masses = (If[StringContainsQ[#["token"], "t"], mt, 0] &) /@ parts;
+masses = If[modelId === "qcd_massless",
+  ConstantArray[0, Length[parts]],
+  (If[StringContainsQ[#["token"], "t"], mt, 0] &) /@ parts
+];
 
 maxMom = ToExpression["p" <> ToString[n]];
 If[MemberQ[outgoing, maxMom],
@@ -146,10 +150,16 @@ Monitor[
     propagator[topo] = Topologies[[topo]][[2]] /. FeynAmpDenominator[StandardPropagatorDenominator[Momentum[p_, D], 0, -mt^2, {1, 1}]] :> {p^2 - msq} /. FeynAmpDenominator[StandardPropagatorDenominator[Momentum[p_, D], 0, 0, {1, 1}]] :> {p^2} // Flatten;
     BLFamilyDefine[family[topo], dimension, propagator[topo], loop, leg, conservation, replacement, topsector, numeric];
     res[topo] = BLReduce[target[topo], "BladeMode" -> Automatic, "DivideLevel" -> 1];
-    Print["\n \n restoring mass"];
-    restoredRes[topo] = RestoreMass[res[topo], int[topo]];
-    (* Force full evaluation before writing to file *)
-    evaluatedRes[topo] = restoredRes[topo] /. msq -> mt^2;
+    (* For massless QCD, skip RestoreMass - no mass scale to restore *)
+    If[modelId === "qcd_massless",
+      Print["\n  [massless] Skipping RestoreMass"];
+      evaluatedRes[topo] = Table[res[topo][[i]]// Collect[#, BL[__], MultivariateApart`MultivariatePassToSingular]&,{i, Length[res[topo]]}];
+    ,
+      Print["\n \n restoring mass"];
+      restoredRes[topo] = RestoreMass[res[topo], int[topo]];
+      (* Force full evaluation before writing to file *)
+      evaluatedRes[topo] = restoredRes[topo] /. msq -> mt^2;
+    ];
     finalRes[topo] = Thread[Rule[target[topo], evaluatedRes[topo]]];
     file = OpenWrite["Files/IBP/IBP" <> ToString[topo] <> ".m"];
     WriteString[file, "IBP[", ToString[topo], "] = ", ToString[finalRes[topo], InputForm], ";\n"];

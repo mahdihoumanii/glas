@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Complete 1-loop propagator sets by inserting routing-consistent propagators.
@@ -30,9 +29,7 @@ from sympy.parsing.sympy_parser import (
 
 TRANSFORMS = standard_transformations + (implicit_multiplication_application,)
 
-# ============================================================
-# Parsing helpers
-# ============================================================
+
 
 
 def _split_top_level_entries(s: str) -> List[str]:
@@ -99,9 +96,7 @@ def parse_topology_list(raw_list_str: str, local_dict: Dict[str, sp.Symbol]) -> 
     return topo
 
 
-# ============================================================
-# Core data structures
-# ============================================================
+
 
 
 def shift_of(mom: sp.Expr, l: sp.Symbol) -> sp.Expr:
@@ -140,9 +135,6 @@ def get_neighbors(node: Tuple[int, ...], dim: int) -> List[Tuple[int, ...]]:
     return neighbors
 
 
-# ============================================================
-# BFS shortest path
-# ============================================================
 
 
 def bfs_path(start: Tuple[int, ...], end: Tuple[int, ...], 
@@ -185,7 +177,6 @@ def bfs_path(start: Tuple[int, ...], end: Tuple[int, ...],
             visited.add(neighbor)
             queue.append((neighbor, path + [neighbor]))
     
-    # No path found (shouldn't happen for connected integer lattice)
     return []
 
 
@@ -491,19 +482,16 @@ def self_test() -> None:
     local_dict = {"l": l, "p1": p1, "p2": p2, "p3": p3, "p4": p4, "mt": mt}
     basis = [p1, p2, p3, p4]
 
-    # Test 1: Basic extension from 3 to 4 propagators
     raw = "top1:[[l, mt], [l - p1 - p2 + p3, 0], [l - p2, mt]]"
     m = re.match(r"^\s*([A-Za-z0-9_]+)\s*:\s*(\[\[.*\]\])\s*;?\s*$", raw)
     topo_in = parse_topology_list(m.group(2), local_dict)
     
     topo_ext = extend_topology(topo_in, l, basis, target_nprops=4)
     
-    # Verify: 4 propagators, all shifts differ by unit steps
     assert len(topo_ext) == 4, f"Expected 4, got {len(topo_ext)}"
     
     shifts = [coeff_vector(shift_of(mom, l), basis) for mom, _ in topo_ext]
     
-    # Check that all pairs have at least one path of unit steps
     for i, s1 in enumerate(shifts):
         for s2 in shifts[i+1:]:
             assert l1_distance(s1, s2) >= 1, "Duplicate shift"

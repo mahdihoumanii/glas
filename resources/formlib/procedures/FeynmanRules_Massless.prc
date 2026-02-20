@@ -138,7 +138,9 @@ repeat id FAD(p1?,p2?, ?a,m?)=  FAD(p1+p2,?a, m);
 repeat id prop(p1?,p2?, ?a,m?)=  prop(p1+p2,?a, m);
 id prop(p?, m?) =  den(p.p- m^2);
 Mul replace_(mt,0);
-id nh = nf-nl; 
+id nh = 0;
+id nl = Nf;
+
 #do i=1,3
 id once g(s1?, s1?, ?a) = g_(`i', ?a); 
 Tracen,`i';

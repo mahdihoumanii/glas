@@ -5,7 +5,7 @@ import os
 import re
 import subprocess
 from pathlib import Path
-from typing import Tuple, Dict, List, Optional
+from typing import Any, Tuple, Dict, List, Optional
 
 
 def _split_process(process_str: str) -> Tuple[List[str], List[str]]:
@@ -21,12 +21,13 @@ def _split_process(process_str: str) -> Tuple[List[str], List[str]]:
     return lhs_tokens, rhs_tokens
 
 
-def _count_external(process_str: str) -> Tuple[int, int, int]:
+def _count_external(process_str: str) -> Tuple[int, int, int, int]:
     """
     Returns:
       n_ext  : total external legs
       nhext  : number of external massive mt legs (t,t~ aliases)
       ng     : number of gluons
+      nyuk   : number of Higgs particles (for Yukawa counterterm)
     """
     lhs, rhs = _split_process(process_str)
     toks = [t.lower() for t in (lhs + rhs)]
@@ -36,7 +37,11 @@ def _count_external(process_str: str) -> Tuple[int, int, int]:
     nhext = sum(1 for t in toks if t in massive_aliases)
 
     ng = sum(1 for t in toks if t == "g")
-    return n_ext, nhext, ng
+    
+    higgs_aliases = {"h", "higgs"}
+    nyuk = sum(1 for t in toks if t in higgs_aliases)
+    
+    return n_ext, nhext, ng, nyuk
 
 
 def _read_meta(output_dir: Path) -> Dict:
@@ -86,7 +91,7 @@ def _count_m0m0_pairs(m0m0_dir: Path) -> Tuple[int, int]:
 
 
 def _mand_define_from_process(process_str: str) -> str:
-    n_ext, _, _ = _count_external(process_str)
+    n_ext, _, _, _ = _count_external(process_str)
     if n_ext == 4:
         return '#define mand "#call mandelstam2x2(p1,p2,p3,p4,0,0,mt,mt)"'
     elif n_ext == 5:
@@ -175,7 +180,7 @@ def _read_gs_power_1l(output_dir: Path, process_str: str, form_exe: str = "form"
     if probed is not None:
         return probed
 
-    n_ext, _, _ = _count_external(process_str)
+    n_ext, _, _, _ = _count_external(process_str)
     return n_ext
 
 
@@ -188,10 +193,12 @@ def _ensure_dirs(output_dir: Path) -> Dict[str, Path]:
     vas_dir = math_base / "Vas"
     vzt_dir = math_base / "Vzt"
     vg_dir = math_base / "Vg"
+    vyuk_dir = math_base / "Vyuk"
 
     vas_dir.mkdir(parents=True, exist_ok=True)
     vzt_dir.mkdir(parents=True, exist_ok=True)
     vg_dir.mkdir(parents=True, exist_ok=True)
+    vyuk_dir.mkdir(parents=True, exist_ok=True)
 
     return {
         "form_dir": form_dir,
@@ -200,6 +207,7 @@ def _ensure_dirs(output_dir: Path) -> Dict[str, Path]:
         "vas_dir": vas_dir,
         "vzt_dir": vzt_dir,
         "vg_dir": vg_dir,
+        "vyuk_dir": vyuk_dir,
     }
 
 
@@ -240,7 +248,15 @@ def _write_driver(
     jmax: int,
     mul_line: str,
     out_subdir: str,
+    nyuk_val: int = 0,
 ) -> Path:
+    # Build defines - add nyuk if non-zero
+    defines = f"""#define b "{b_val}"
+#define nhext "{nhext_val}"
+#define ng "{ng_val}\""""
+    if nyuk_val > 0:
+        defines += f'\n#define nyuk "{nyuk_val}"'
+    
     frm_path = form_dir / name
     frm_path.write_text(
         f"""#-
@@ -251,9 +267,7 @@ def _write_driver(
 Off Statistics;
 
 {mand_define}
-#define b "{b_val}"
-#define nhext "{nhext_val}"
-#define ng "{ng_val}"
+{defines}
 
 #include declarations.h
     .sort 
@@ -271,7 +285,7 @@ PolyRatFun rat;
 #enddo
 #enddo
 
-b nl,nh,ep,gs,Pi;
+b nl,nh,ep,gs,Pi,nf;
 Print; 
     .end
 """,
@@ -280,7 +294,7 @@ Print;
     return frm_path
 
 
-def prepare_getct_projects(output_dir: Path, *, form_exe: str = "form") -> Dict[str, Path]:
+def prepare_getct_projects(output_dir: Path, *, form_exe: str = "form") -> Dict[str, Any]:
     """
     Creates three FORM drivers:
       - Vas.frm
@@ -288,6 +302,8 @@ def prepare_getct_projects(output_dir: Path, *, form_exe: str = "form") -> Dict[
       - Vg.frm
 
     Also ensures form/procedures exists (IncDir procedures).
+
+    Returns dict with keys: Vas, Vzt, Vg (Path), is_massless (bool)
     """
     output_dir = Path(output_dir).resolve()
     meta = _read_meta(output_dir)
@@ -318,12 +334,28 @@ def prepare_getct_projects(output_dir: Path, *, form_exe: str = "form") -> Dict[
     if b_val < 0:
         b_val = 0
 
-    _, nhext_val, ng_val = _count_external(process_str)
-    mand_define = _mand_define_from_process(process_str)
+    _, nhext_val, ng_val, nyuk_val = _count_external(process_str)
+    mand_define = meta.get("mand_define") or _mand_define_from_process(process_str)
 
-    mul_vas = "Mul (`b'*gs^2*(-33 + 2*nh + 2*nl))/(48*ep*Pi^2) + (`b'*gs^2*nh*Log(Mu^2/mt^2))/(24*Pi^2);"
-    mul_vzt = "Mul (-1/3*(gs^2*`nhext')/Pi^2 - (gs^2*`nhext')/(4*ep*Pi^2) - (gs^2*`nhext'*Log(Mu^2/mt^2))/(4*Pi^2));"
-    mul_vg  = "Mul -1/24*(gs^2*`ng'*nh)/(ep*Pi^2) - (gs^2*`ng'*nh*Log(Mu^2/mt^2))/(24*Pi^2);"
+    # Check if massless model or Higgs model
+    model_id = meta.get("model_id", "qcd_massive")
+    is_massless = (model_id == "qcd_massless")
+    is_higgs = (model_id == "higgs_qcd")
+
+    # For massless QCD: nh=0, nl=nf, mt=0
+    # Vas simplifies to: (b*gs^2*(-33 + 2*nf))/(48*ep*Pi^2)
+    # Vzt becomes 0 (nhext=0, no massive external particles)
+    # Vg becomes 0 (nh=0, no heavy quark loops)
+    if is_massless:
+        nhext_val = 0  # No massive external particles
+        # For massless: use nf directly, no nh, no mt logs
+        mul_vas = "Mul (`b'*gs^2*(-33 + 2*nf))/(48*ep*Pi^2);"
+        mul_vzt = "Mul 0;"  # nhext=0 -> 0
+        mul_vg = "Mul 0;"   # nh=0 -> 0
+    else:
+        mul_vas = "Mul (`b'*gs^2*(-33 + 2*nh + 2*nl))/(48*ep*Pi^2) + (`b'*gs^2*nh*Log(Mu^2/mt^2))/(24*Pi^2);"
+        mul_vzt = "Mul (-1/3*(gs^2*`nhext')/Pi^2 - (gs^2*`nhext')/(4*ep*Pi^2) - (gs^2*`nhext'*Log(Mu^2/mt^2))/(4*Pi^2));"
+        mul_vg = "Mul -1/24*(gs^2*`ng'*nh)/(ep*Pi^2) - (gs^2*`ng'*nh*Log(Mu^2/mt^2))/(24*Pi^2);"
 
     p_vas = _write_driver(
         form_dir,
@@ -362,20 +394,48 @@ def prepare_getct_projects(output_dir: Path, *, form_exe: str = "form") -> Dict[
         out_subdir="Vg",
     )
 
+    # Vyuk driver (Yukawa counterterm) for Higgs+QCD model
+    # From picture B.6: V^UV_yuk involves nyuk_l (massless) and nyuk_h (massive)
+    # For now use neps as placeholder coefficient
+    p_vyuk = None
+    if is_higgs and nyuk_val > 0:
+        # Yukawa counterterm: use neps as placeholder
+        mul_vyuk = "Mul `nyuk'*neps;"
+        p_vyuk = _write_driver(
+            form_dir,
+            name="Vyuk.frm",
+            mand_define=mand_define,
+            b_val=b_val,
+            nhext_val=nhext_val,
+            ng_val=ng_val,
+            imax=imax,
+            jmax=jmax,
+            mul_line=mul_vyuk,
+            out_subdir="Vyuk",
+            nyuk_val=nyuk_val,
+        )
+
     # Always write the constants you wanted to see
     dbg = files_dir / "getct_meta.txt"
     dbg.write_text(
         f"process={process_str}\n"
+        f"model_id={model_id}\n"
+        f"is_massless={is_massless}\n"
+        f"is_higgs={is_higgs}\n"
         f"gs_power_1l={gs_power_1l}\n"
         f"b={b_val}\n"
         f"nhext={nhext_val}\n"
         f"ng={ng_val}\n"
+        f"nyuk={nyuk_val}\n"
         f"imax={imax}\n"
         f"jmax={jmax}\n",
         encoding="utf-8",
     )
 
-    return {"Vas": p_vas, "Vzt": p_vzt, "Vg": p_vg}
+    result = {"Vas": p_vas, "Vzt": p_vzt, "Vg": p_vg, "is_massless": is_massless, "is_higgs": is_higgs}
+    if p_vyuk:
+        result["Vyuk"] = p_vyuk
+    return result
 
 
 def prepare_getct(ctx, form_exe: str):

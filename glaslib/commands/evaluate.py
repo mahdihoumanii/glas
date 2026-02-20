@@ -11,7 +11,7 @@ from glaslib.dirac import prepare_dirac
 from glaslib.formprep import prepare_form
 from glaslib.core.logging import LOG_SUBDIR_EVALUATE, LOG_SUBDIR_DIRAC
 from glaslib.core.parallel import chunk_range_1based, run_jobs
-from glaslib.core.paths import procedures_dir
+from glaslib.core.paths import procedures_dir, setup_run_procedures
 
 
 def _write_eval_driver(
@@ -175,7 +175,9 @@ def run(state: AppState, arg: str) -> None:
             print("Error: form directory not prepared. Run generate first.")
             return
 
-        incdir = procedures_dir()
+        # Set up model-specific procedures directory
+        feynman_rules_prc = state.get_feynman_rules_file()
+        incdir = setup_run_procedures(state.ctx.run_dir, feynman_rules_prc)  # type: ignore[arg-type]
         mand_define = meta.get("mand_define")
         if not mand_define:
             print("Error: mand_define missing in meta.json (run generate first).")
@@ -222,6 +224,12 @@ def run(state: AppState, arg: str) -> None:
         return
 
     # mode == "mct"
+    # Check if massless model - no mass counterterms needed
+    model_id = meta.get("model_id", "qcd_massive")
+    if model_id == "qcd_massless":
+        print("[evaluate mct] Skipped: mass counterterms are zero for massless QCD.")
+        return
+
     try:
         out = prepare_mass_ct(state.ctx, form_exe=state.form_exe, jobs=jobs_req)
     except Exception as exc:

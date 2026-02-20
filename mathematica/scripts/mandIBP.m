@@ -6,11 +6,15 @@ n0l = meta["n0l"];
 n1l = meta["n1l"];
 parts = meta["particles"];
 n = meta["n_in"] + meta["n_out"];
+modelId = Lookup[meta, "model_id", "qcd_massive"];
 
 moms = ToExpression /@ parts[[All, "momentum"]];
 incoming = ToExpression /@ (Select[parts, #["side"] == "in" &][[All, "momentum"]]);
 outgoing = ToExpression /@ (Select[parts, #["side"] == "out" &][[All, "momentum"]]);
-masses = (If[StringContainsQ[#["token"], "t"], mt, 0] &) /@ parts;
+masses = If[modelId === "qcd_massless",
+  ConstantArray[0, Length[parts]],
+  (If[StringContainsQ[#["token"], "t"], mt, 0] &) /@ parts
+];
 
 maxMom = ToExpression["p" <> ToString[n]];
 If[MemberQ[outgoing, maxMom],
@@ -21,10 +25,11 @@ sym[x_, i_] := ToExpression[ToString[x] <> ToString[i]]
 
 << FeynCalc`
 
+sumMassesSq = Total[masses^2];
 If[n == 4,
   FCClearScalarProducts[];
   SetMandelstam[s12, s13, s14, Sequence @@ Join[incoming, -outgoing], Sequence @@ masses];
-  mandrep = {s14 -> 2*mt^2 - s12 - s13};,
+  mandrep = {s14 -> sumMassesSq - s12 - s13};,
   If[n == 5,
     FCClearScalarProducts[];
     SetMandelstam[mand, Join[incoming, -outgoing], masses];

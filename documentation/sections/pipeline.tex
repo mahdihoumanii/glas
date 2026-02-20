@@ -1,6 +1,5 @@
 \section{The Three-Phase Pipeline}\label{sec:pipeline}
 %=============================================================================
-
 The calculation proceeds through three main phases, each corresponding to a set of \textsc{GLAS} commands.
 
 \subsection{Phase 1: Generation}
@@ -65,6 +64,7 @@ The contraction procedure includes:
 
 The results of the contraction of the complex conjugate of tree-level amplitude $\mathcal{M}_0^*$ and one loop-amplitude $\mathcal{M}_1$ with diagrams $d_i^*$ and $d_1$ is represented via the following equation: 
 \begin{equation}
-    \mathcal{M}_0^* \mathcal{M}_1 = \sum_{i, j} d_{i}^* d_{j}
+   \sum_{s, c} \mathcal{M}_0^* \mathcal{M}_1 = \sum_{i, j} \sum_{s, c} d_{i}^* d_{j}
 \end{equation}
+and is saved in the directory \texttt{form(Mathematica)/Files/M0M1}
 %=============================================================================

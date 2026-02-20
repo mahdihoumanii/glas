@@ -8,11 +8,15 @@ n0l = meta["n0l"];
 n1l = meta["n1l"];
 parts = meta["particles"];
 n = meta["n_in"] + meta["n_out"];
+modelId = Lookup[meta, "model_id", "qcd_massive"];
 
 moms = ToExpression /@ parts[[All, "momentum"]];
 incoming = ToExpression /@ (Select[parts, #["side"] == "in" &][[All, "momentum"]]);
 outgoing = ToExpression /@ (Select[parts, #["side"] == "out" &][[All, "momentum"]]);
-masses = (If[StringContainsQ[#["token"], "t"], mt, 0] &) /@ parts;
+masses = If[modelId === "qcd_massless",
+  ConstantArray[0, Length[parts]],
+  (If[StringContainsQ[#["token"], "t"], mt, 0] &) /@ parts
+];
 
 maxMom = ToExpression["p" <> ToString[n]];
 If[MemberQ[outgoing, maxMom],
@@ -44,10 +48,10 @@ mapExtra = FCLoopFindTopologyMappings[toposExtra, PreferredTopologies -> subtopo
 mapExt = FCLoopFindTopologyMappings[{toposExtra, topos3} // Flatten, PreferredTopologies -> subtoposExt];
 
 
-
+sumMassesSq = Total[masses^2];
 If[n == 4,
   SetMandelstam[s12, s13, s14, Sequence @@ Join[incoming, -outgoing], Sequence @@ masses];
-  mandrep = {s14 -> 2*mt^2 - s12 - s13};,
+  mandrep = {s14 -> sumMassesSq - s12 - s13};,
   If[n == 5,
     SetMandelstam[mand, Join[incoming, -outgoing], masses];
     mandrep = {mand[1,2] -> s12, mand[2,3] -> s23, mand[3,4] -> s34, mand[4,5] -> s45, mand[1,5] -> s15};

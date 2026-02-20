@@ -2,14 +2,28 @@ from __future__ import annotations
 
 import cmd
 
-from glaslib.commands import contract, evaluate, extract, generate, ioperator, linrels, micoef, misc, ratcombine, reduce, uvct
+from glaslib.commands import contract, evaluate, extract, generate, ioperator, ktexpand, linrels, micoef, misc, ratcombine, reduce, uvct
 from glaslib.commands.common import AppState, MODES
 from glaslib.core.run_manager import RunContext
 from glaslib.formprep import prepare_form
+from glaslib.core.models import get_available_models, get_default_model_id, print_available_models
+
+
+def _build_intro() -> str:
+    """Build the REPL intro text including available models."""
+    lines = ["GLAS unified shell. Type 'help' or '?'.", ""]
+    lines.append("Available models:")
+    models = get_available_models()
+    default_id = get_default_model_id()
+    for i, m in enumerate(models, 1):
+        default_marker = " (default)" if m.id == default_id else ""
+        lines.append(f"  {i}) {m.name}{default_marker} — {m.description}")
+    lines.append("")
+    return "\n".join(lines)
 
 
 class GlasShell(cmd.Cmd):
-    intro = "GLAS unified shell. Type 'help' or '?'.\n"
+    intro = _build_intro()
     prompt = "glas> "
 
     def __init__(self) -> None:
@@ -80,6 +94,13 @@ class GlasShell(cmd.Cmd):
     def do_ratcombine(self, arg: str) -> None:
         ratcombine.run(self.state, arg)
 
+    def do_ktexpand(self, arg: str) -> None:
+        ktexpand.run(self.state, arg)
+
+    def complete_ktexpand(self, text, line, begidx, endidx):
+        modes = ["lo", "nlo"]
+        return [m for m in modes if not text or m.startswith(text)]
+
     def do_runs(self, arg: str) -> None:
         misc.runs(self.state, arg)
 
@@ -108,6 +129,23 @@ class GlasShell(cmd.Cmd):
 
     def do_smoke(self, arg: str) -> None:
         misc.smoke(self.state, arg)
+
+    def do_model(self, arg: str) -> None:
+        """Show, list, or set the physics model. Usage: model [list|set <id>|set --run <id>]"""
+        misc.model(self.state, arg)
+
+    def complete_model(self, text, line, begidx, endidx):
+        toks = line.split()
+        # "model" -> suggest subcommands
+        if len(toks) == 1 or (len(toks) == 2 and not line.endswith(" ")):
+            subcmds = ["list", "set"]
+            return [s for s in subcmds if s.startswith(text)]
+        # "model set" -> suggest model ids
+        if len(toks) >= 2 and toks[1] == "set":
+            models = get_available_models()
+            ids = [m.id for m in models] + ["--run"]
+            return [i for i in ids if i.startswith(text)]
+        return []
 
     def do_verbose(self, arg: str) -> None:
         """Toggle or set verbose mode. Usage: verbose [on|off]"""

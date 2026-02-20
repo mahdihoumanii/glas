@@ -46,11 +46,9 @@ def _count_diagrams(folder: Path) -> int:
     return n
 
 
-def _mass_for_token(tok: str) -> str:
-    tok = tok.lower()
-    if tok in ("t", "t~", "tbar"):
-        return "mt"
-    return "0"
+def _mass_for_token(tok: str, model_id: Optional[str] = None) -> str:
+    from glaslib.core.models import get_mass_for_particle
+    return get_mass_for_particle(tok, model_id or "qcd_massive")
 
 
 def _split_process(process_str: str) -> Tuple[list, list]:
@@ -66,13 +64,13 @@ def _split_process(process_str: str) -> Tuple[list, list]:
     return lhs_tokens, rhs_tokens
 
 
-def _build_mand_define(process_str: str) -> str:
+def _build_mand_define(process_str: str, model_id: Optional[str] = None) -> str:
     lhs, rhs = _split_process(process_str)
     tokens = [t.lower() for t in (lhs + rhs)]
     n_in = len(lhs)
     n_out = len(rhs)
     momenta = [f"p{i}" for i in range(1, len(tokens) + 1)]
-    masses = [_mass_for_token(t) for t in tokens]
+    masses = [_mass_for_token(t, model_id) for t in tokens]
     return f'#define mand "#call mandelstam{n_in}x{n_out}({",".join(momenta)},{",".join(masses)})"'
 
 
@@ -191,7 +189,8 @@ def prepare_dirac_projects(
     if mode not in ("0", "1", "2", "mct"):
         raise ValueError("DiracSimplify mode must be one of: 0, 1, 2, mct")
 
-    mand_define = meta.get("mand_define") or _build_mand_define(meta["process"])
+    model_id = meta.get("model_id")
+    mand_define = meta.get("mand_define") or _build_mand_define(meta["process"], model_id)
 
     jobs_requested = max(1, int(jobs))
     orth_block = _orthogonality_block(gluon_orth)

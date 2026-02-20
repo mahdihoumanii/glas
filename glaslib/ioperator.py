@@ -9,6 +9,7 @@ from glaslib.contractLO import _collect_gluon_momenta, _write_gluon_polarization
 from glaslib.core.paths import ensure_symlink_or_copy, procedures_dir
 from glaslib.core.run_manager import RunContext
 from glaslib.core.parallel import run_jobs
+from glaslib.core.models import get_mass_for_particle
 
 
 def _particles_from_meta(meta: Dict[str, Any]) -> List[Dict[str, str]]:
@@ -244,25 +245,64 @@ def prepare_ir_full(ctx: RunContext, *, gluon_refs: Optional[Dict[str, str]] = N
     return {"drivers": drivers}
 
 
-def _massless_indices(particles: List[Dict[str, str]]) -> List[int]:
-    massless_tokens = {"g", "q", "q~", "qbar"}
+def _massless_indices(particles: List[Dict[str, str]], model_id: str = "qcd_massive") -> List[int]:
+    """Return 1-based indices of massless particles based on model.
+    
+    Note: Higgs is treated separately (scalar, no soft/collinear singularities in same way).
+    """
     res = []
     for i, p in enumerate(particles, 1):
-        if p.get("token", "").lower() in massless_tokens:
+        token = p.get("token", "")
+        # Higgs is massive but doesn't participate in IR structure like fermions/gluons
+        if token.lower() in ("h", "higgs"):
+            continue
+        mass = get_mass_for_particle(token, model_id)
+        if mass == "0":
             res.append(i)
     return res
 
 
-def _massive_indices(particles: List[Dict[str, str]]) -> List[int]:
-    massless = set(_massless_indices(particles))
-    return [i for i in range(1, len(particles) + 1) if i not in massless]
+def _massive_indices(particles: List[Dict[str, str]], model_id: str = "qcd_massive") -> List[int]:
+    """Return 1-based indices of massive particles based on model.
+    
+    Note: Excludes Higgs (scalar, handled separately in IR structure).
+    """
+    res = []
+    for i, p in enumerate(particles, 1):
+        token = p.get("token", "")
+        # Skip Higgs - it's massive but doesn't participate in IR like fermions
+        if token.lower() in ("h", "higgs"):
+            continue
+        mass = get_mass_for_particle(token, model_id)
+        if mass != "0":
+            res.append(i)
+    return res
 
 
-def _gamma_map_lines(particles: List[Dict[str, str]]) -> str:
+def _gamma_map_lines(particles: List[Dict[str, str]], model_id: str = "qcd_massive") -> str:
+    """Generate FORM lines mapping particle indices to anomalous dimension types.
+    
+    For massless QCD, all quarks (including t/t~) are treated as light quarks.
+    Higgs (scalar) has no QCD anomalous dimension - assigned to 'scalar' which gives 0.
+    """
     lines = []
     for i, p in enumerate(particles, 1):
         tok = p.get("token", "").lower()
-        kind = "g" if tok == "g" else ("q" if tok in ("q", "q~", "qbar") else "top")
+        if tok == "g":
+            kind = "g"
+        elif tok in ("q", "q~", "qbar"):
+            kind = "q"
+        elif tok in ("t", "t~", "tbar"):
+            # For massless model, t/t~ treated as light quark
+            if model_id == "qcd_massless":
+                kind = "q"
+            else:
+                kind = "top"
+        elif tok in ("h", "higgs"):
+            # Higgs is a color singlet scalar - no QCD anomalous dimension
+            kind = "scalar"
+        else:
+            kind = "q"  # Default to light quark for unknown
         lines.append(f"id aGamma?{{aGamma,casimir}}({i}) = aGamma({kind});")
     return "\n".join(lines)
 
@@ -280,9 +320,97 @@ def _build_ioperator_master(
     gamma_lines: str,
 ) -> str:
     massless_str = ",".join(str(i) for i in massless) or "0"
-    massive_str = ",".join(str(i) for i in massive) or "0"
     incoming_str = ",".join(str(i) for i in incoming) or "0"
     outgoing_str = ",".join(str(i) for i in outgoing) or "0"
+    has_massive = len(massive) > 0
+    massive_str = ",".join(str(i) for i in massive) if has_massive else ""
+
+    # Build massive-massive section (mm) only if there are massive particles
+    mm_section = ""
+    if has_massive:
+        mm_section = f"""
+l mm =
+#do i = {{`massive'}}
+#do j = {{`massive'}}
+#if (`i' != `j' && `i'<`j')
+    +den(Vel(`i',`j')) *Log(Vel,`i',`j')*I`i'x`j'
+#elseif `i' > `j'
+    +den(Vel(`i',`j')) *Log(Vel,`i',`j')*I`j'x`i'
+#else
++0
+#endif
+
+#enddo 
+#enddo 
+;
+"""
+    else:
+        mm_section = "\nl mm = 0;\n"
+
+    # Build massless-massive section (m0m) only if there are massive particles
+    m0m_section = ""
+    if has_massive:
+        m0m_section = f"""
+l m0m=
+#do i = {{`massive'}}
+#do j = {{`massless'}}
+#if (`i' != `j' && `i'<`j')
+    +Log(mass(p`i')*Mu*den(SPD(`i',`j')))*I`i'x`j'
+#elseif `i' > `j'
+    +Log(mass(p`i')*Mu*den(SPD(`i',`j')))*I`j'x`i'
+#else
++0
+#endif
+
+#enddo 
+#enddo 
+;
+"""
+    else:
+        m0m_section = "\nl m0m = 0;\n"
+
+    # Velocity Log substitution only if massive particles exist
+    vel_log_section = ""
+    if has_massive:
+        vel_log_section = f"""#do i = {{`massive'}}
+#do j = {{`massive'}}
+
+id Log(Vel,`i',`j') = Log((1+ Vel(`i',`j'))*den(1- Vel(`i',`j')));
+
+#enddo 
+#enddo
+    .sort """
+
+    # Velocity final substitution only if massive particles exist
+    vel_final_section = ""
+    if has_massive:
+        vel_final_section = f"""#do i = 1,{{`np'}}
+#do j = 1,{{`np'}}
+id Vel(`i',`j') = Sqrt(1-(mass(p`i')^2 *mass(p`j')^2)*den(p`i'.p`j')^2);
+`mand'
+argument; 
+id Vel(`i',`j') = Sqrt(1-(mass(p`i')^2 *mass(p`j')^2)*den(p`i'.p`j')^2);
+`mand'
+argument;
+id Vel(`i',`j') = Sqrt(1-(mass(p`i')^2 *mass(p`j')^2)*den(p`i'.p`j')^2);
+`mand'
+endargument;
+
+argument;
+`mand'
+argument;
+`mand'
+endargument;
+endargument;
+
+endargument;
+#enddo 
+#enddo 
+    .sort """
+
+    # Massive define only if needed
+    massive_define = f'#define massive "{massive_str}"' if has_massive else ""
+
     return f"""#-
 #: IncDir {incdir}
 #: SmallExtension 100M
@@ -298,7 +426,7 @@ Off Statistics;
 
 
 #define massless "{massless_str}"
-#define massive "{massive_str}"
+{massive_define}
 #define incoming "{incoming_str}"
 #define outgoing "{outgoing_str}"
 #include Files/TotalLO/TotalLO.h
@@ -336,40 +464,7 @@ l m0m0 =
 #enddo 
 #enddo 
 ;
-
-l mm =
-#do i = {{`massive'}}
-#do j = {{`massive'}}
-#if (`i' != `j' && `i'<`j')
-    +den(Vel(`i',`j')) *Log(Vel,`i',`j')*I`i'x`j'
-#elseif `i' > `j'
-    +den(Vel(`i',`j')) *Log(Vel,`i',`j')*I`j'x`i'
-#else
-+0
-#endif
-
-#enddo 
-#enddo 
-;
-
-
-    .sort 
-
-
-l m0m=
-#do i = {{`massive'}}
-#do j = {{`massless'}}
-#if (`i' != `j' && `i'<`j')
-    +Log(mass(p`i')*Mu*den(SPD(`i',`j')))*I`i'x`j'
-#elseif `i' > `j'
-    +Log(mass(p`i')*Mu*den(SPD(`i',`j')))*I`j'x`i'
-#else
-+0
-#endif
-
-#enddo 
-#enddo 
-;
+{mm_section}{m0m_section}
     .sort 
 #do i = {{`incoming'}}
 #do j = {{`incoming'}}
@@ -414,14 +509,7 @@ endargument;
 
 `mand'
     .sort 
-#do i = {{`massive'}}
-#do j = {{`massive'}}
-
-id Log(Vel,`i',`j') = Log((1+ Vel(`i',`j'))*den(1- Vel(`i',`j')));
-
-#enddo 
-#enddo
-    .sort 
+{vel_log_section}
 #do i =  1,`np';
 Drop I`i'x1,...,I`i'x`np';
 #enddo 
@@ -441,9 +529,11 @@ Drop TotalLO, const, sumcmassless,sumgam, m0m0,m0m, mm;
 
 id casimir(q?{{q,top}}) = 4/3;
 id casimir(g) = 3;
+id casimir(scalar) = 0;
 id aGamma(top) = -2 *4/3;
 id aGamma(q)= -3 *4/3;
-id aGamma(g) = - 11/3 * 3 + 4/3* 1/2*nl; 
+id aGamma(g) = - 11/3 * 3 + 4/3* 1/2*nl;
+id aGamma(scalar) = 0;
 
 
     .sort 
@@ -457,30 +547,7 @@ id Pole(ep, -2) = 1/ep^2;
     .sort 
 id Pole(?a) = 0;
     .sort 
-#do i = 1,{{`np'}}
-#do j = 1,{{`np'}}
-id Vel(`i',`j') = Sqrt(1-(mass(p`i')^2 *mass(p`j')^2)*den(p`i'.p`j')^2);
-`mand'
-argument; 
-id Vel(`i',`j') = Sqrt(1-(mass(p`i')^2 *mass(p`j')^2)*den(p`i'.p`j')^2);
-`mand'
-argument;
-id Vel(`i',`j') = Sqrt(1-(mass(p`i')^2 *mass(p`j')^2)*den(p`i'.p`j')^2);
-`mand'
-endargument;
-
-argument;
-`mand'
-argument;
-`mand'
-endargument;
-endargument;
-
-endargument;
-#enddo 
-#enddo 
-    .sort 
-
+{vel_final_section}
 
 #call RationalFunction
 #call toden
@@ -508,16 +575,17 @@ def prepare_ioperator_master(ctx: RunContext, *, gluon_refs: Optional[Dict[str, 
     if not particles:
         raise RuntimeError("Particle information missing in meta.json.")
 
+    model_id = meta.get("model_id", "qcd_massive")
     incdir = (ctx.prep_form_dir or ctx.run_dir / "form") / "procedures"
     np = len(particles)
     n0l = int(meta.get("n0l") or 0)
     mand_define = meta.get("mand_define") or ""
-    massless = _massless_indices(particles)
-    massive = _massive_indices(particles)
+    massless = _massless_indices(particles, model_id)
+    massive = _massive_indices(particles, model_id)
     n_in = int(meta.get("n_in") or 0)
     incoming = list(range(1, n_in + 1))
     outgoing = list(range(n_in + 1, np + 1))
-    gamma_lines = _gamma_map_lines(particles)
+    gamma_lines = _gamma_map_lines(particles, model_id)
 
     form_dir = ctx.prep_form_dir or ctx.run_dir / "form"
     (ctx.run_dir / "mathematica" / "Files").mkdir(parents=True, exist_ok=True)

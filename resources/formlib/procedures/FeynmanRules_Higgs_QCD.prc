@@ -1,4 +1,8 @@
 #procedure FeynmanRules
+*
+* Higgs + QCD Feynman Rules
+* Includes standard QCD rules + Yukawa coupling (t-tbar-H)
+*
 
     .sort 
 id gin(s1?, p1?) = eps(s1, p1);
@@ -10,7 +14,11 @@ id qout?{qout, topout}(s1?,p1?) = ub(p1,s1);
 id qBin?{qBin, topBin}(s1?, p1?) = vb(p1,s1);
 id qBout?{qBout, topBout}(s1?, p1?) = v(p1,s1);
 
+* Higgs external states
+id hin(s1?, p1?) = 1;
+id hout(s1?, p1?) = 1;
 
+* QCD vertices
 id vx(topB?{qB, topB}(s1?,p3?),top?{q, top}(s2?,p2?),g(s3?,p1?)) = i_*gs*T(s3, s1, s2)*g(s1,s2,s3) ;
 id vx(ghB(s1?, p1?), gh(s2?, p2?), g(s3?, p3?))= gs*fsub(s1,s2,s3)*pair(p2,s3); 
 id vx(g(s1?,p1?),g(s2?,p2?),g(s3?,p3?))= gs*fsub(s1, s2, s3)*gv(s1,s2,s3, p1,p2,p3);
@@ -23,11 +31,19 @@ id once vx(g(s1?,p1?),g(s2?,p2?),g(s3?,p3?),g(s4?, p4?))= -i_* gs^2 *(
 #enddo 
 id fgv(s1?, s2?, s3?, s4?) = Gmn(s1, s2)*Gmn(s3, s4);
 
+* Yukawa vertex: t-tbar-H coupling
+* The vertex is: -i * yt * delta_ab (color singlet Higgs)
+id vx(topB(s1?,p1?),top(s2?,p2?),h(s3?,p3?)) = -i_*yt*SUNFD(s1,s2);
+id vx(top(s1?,p1?),topB(s2?,p2?),h(s3?,p3?)) = -i_*yt*SUNFD(s1,s2);
 
-
+* Propagators
 id fprop(s1?, s2?, p?, m?) = i_* SUNFD(s1, s2)  *  prop(p, m)  *  (g(s1, s2, p) + deltas(s1, s2)* m);
 id gprop(s1?, s2?, p?, m?) = i_*SUND(s1, s2)* prop(p, m)*(- Gmn(s1, s2));
 id ghprop(s1?, s2?, p?, m?) = i_*SUND(s1, s2)*prop(p, m);
+
+* Higgs propagator
+id hprop(s1?, s2?, p?, m?) = i_*prop(p, m);
+
 id gv(s1?,s2?,s3?, p1?,p2?,p3?) = (pair(p1,s3)- pair(p2,s3))*Gmn(s1,s2) + (pair(p2,s1)-pair(p3,s1))*Gmn(s2,s3) +(pair(p3,s2) - pair(p1,s2))*Gmn(s3,s1);
 repeat;
 
@@ -137,8 +153,7 @@ id once FAD(?a, mt)*g(s1?, s1?, ?b) = nh*FAD(?a, mt)*g(s1,s1, ?b);
 repeat id FAD(p1?,p2?, ?a,m?)=  FAD(p1+p2,?a, m);
 repeat id prop(p1?,p2?, ?a,m?)=  prop(p1+p2,?a, m);
 id prop(p?, m?) =  den(p.p- m^2);
-Mul replace_(mt,0);
-id nh = nf-nl; 
+
 #do i=1,3
 id once g(s1?, s1?, ?a) = g_(`i', ?a); 
 Tracen,`i';

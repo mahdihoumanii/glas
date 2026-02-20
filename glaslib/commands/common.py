@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 from glaslib.core.refs import GluonRefs
 from glaslib.core.run_manager import RunContext
+from glaslib.core.models import get_default_model_id, get_model_by_id, get_feynman_rules_prc, get_qgraf_model
 
 
 MODES = ("lo", "nlo", "mct")
@@ -17,10 +18,15 @@ MODES = ("lo", "nlo", "mct")
 class AppState:
     ctx: RunContext
     form_exe: str = "form"
-    model: str = "qcd"
+    model_id: str = field(default_factory=get_default_model_id)
     keep_temp: bool = False
     verbose: bool = False
     gluon_refs: Optional[GluonRefs] = None
+
+    @property
+    def model(self) -> str:
+        """QGRAF model file name for diagram generation."""
+        return get_qgraf_model(self.get_effective_model_id())
 
     def ensure_run(self) -> bool:
         return self.ctx.require_run()
@@ -29,6 +35,24 @@ class AppState:
         if self.gluon_refs is None:
             self.gluon_refs = GluonRefs(self.ctx)
         return self.gluon_refs
+
+    def get_effective_model_id(self) -> str:
+        """
+        Get the effective model_id for the current run.
+
+        Priority:
+        1. Run-specific model_id from meta.json
+        2. Global model_id from AppState
+        """
+        if self.ctx.meta:
+            run_model = self.ctx.meta.get("model_id")
+            if run_model:
+                return run_model
+        return self.model_id
+
+    def get_feynman_rules_file(self) -> str:
+        """Get the Feynman rules procedure filename for the effective model."""
+        return get_feynman_rules_prc(self.get_effective_model_id())
 
 
 def parse_generate_args(arg: str) -> Tuple[str, Optional[int], Optional[str], bool]:

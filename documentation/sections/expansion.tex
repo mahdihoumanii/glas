@@ -1,0 +1,221 @@
+\section{Collinear Expansion and Power Structure}
+\label{sec:collinear_expansion}
+
+We consider a generic QCD process with $n+1$ external partons,
+\begin{equation}
+\mathcal{M}_{n+1}(k_1,\dots,k_{n+1}),
+\end{equation}
+and study the collinear limit in which two partons,
+labelled $i$ and $n+1$, become collinear.
+
+\subsection{Collinear kinematics}
+
+Let $p_i$ be a lightlike reference momentum,
+\begin{equation}
+p_i^2 = 0,
+\end{equation}
+and introduce an auxiliary lightlike vector $q$ with
+\begin{equation}
+q^2 = 0,
+\qquad
+p_i \cdot q \neq 0.
+\end{equation}
+
+The collinear limit is parameterized as
+\begin{align}
+k_{n+1} &=
+x\, p_i
++ l_\perp
+- \frac{l_\perp^2}{2x\, p_i\!\cdot\! q}\, q ,
+\\
+k_i &=
+(1-x)\, p_i
+- l_\perp
+- \frac{l_\perp^2}{2(1-x)\, p_i\!\cdot\! q}\, q ,
+\end{align}
+with
+\begin{equation}
+l_\perp \cdot p_i = l_\perp \cdot q = 0 .
+\end{equation}
+
+All other momenta satisfy
+\begin{equation}
+k_j = p_j + \mathcal{O}(l_\perp^2),
+\qquad j \neq i .
+\end{equation}
+
+We define the small expansion parameter
+\begin{equation}
+\lambda \sim \frac{|l_\perp|}{Q},
+\end{equation}
+where $Q$ denotes a hard scale of the process. The transverse momentum satisfies
+\begin{equation}
+l_\perp^2 \sim \lambda^2 Q^2 .
+\end{equation}
+
+\subsection{Expansion of the amplitude}
+
+In the collinear limit the $(n+1)$-parton amplitude admits an expansion in powers of $\lambda$,
+\begin{equation}
+\mathcal{M}_{n+1}
+=
+\lambda^{-1} \mathcal{M}^{(-1)}
++ \lambda^{0} \mathcal{M}^{(0)}
++ \lambda^{1} \mathcal{M}^{(1)}
++ \mathcal{O}(\lambda^{2}) .
+\end{equation}
+
+The squared amplitude therefore expands as
+\begin{align}
+|\mathcal{M}_{n+1}|^2
+&=
+\lambda^{-2} \, \mathcal{A}_{\text{LP}}
++
+\lambda^{-1} \, \mathcal{A}_{\text{NLP}}
++
+\lambda^{0} \, \mathcal{A}_{\text{NNLP}}
++
+\mathcal{O}(\lambda),
+\end{align}
+where
+
+\begin{align}
+\mathcal{A}_{\text{LP}}
+&=
+|\mathcal{M}^{(-1)}|^2 ,
+\\
+\mathcal{A}_{\text{NLP}}
+&=
+2\, \Re \big(
+\mathcal{M}^{(-1)} \mathcal{M}^{(0)\,*}
+\big) ,
+\\
+\mathcal{A}_{\text{NNLP}}
+&=
+|\mathcal{M}^{(0)}|^2
++
+2\, \Re \big(
+\mathcal{M}^{(-1)} \mathcal{M}^{(1)\,*}
+\big) .
+\end{align}
+
+These correspond respectively to
+
+\begin{itemize}
+\item Leading Power (LP): $\sim 1/l_\perp^2$
+\item Next-to-Leading Power (NLP): $\sim 1/|l_\perp|$
+\item Next-to-Next-to-Leading Power (NNLP): $\sim \lambda^0$
+\end{itemize}
+
+\subsection{Factorization at Leading Power}
+
+At leading power the amplitude factorizes universally,
+\begin{equation}
+\mathcal{M}_{n+1}^{(-1)}
+=
+\mathbf{Sp}^{(0)}_{i \to i + (n+1)}(x,l_\perp)
+\;
+\mathcal{M}_n(\dots,p_i,\dots),
+\end{equation}
+where $\mathbf{Sp}^{(0)}$ is the tree-level splitting amplitude.
+
+Squaring yields
+\begin{equation}
+\mathcal{A}_{\text{LP}}
+=
+\frac{2 g_s^2}{l_\perp^2}
+\, P_{a\to bc}(x)
+\;
+|\mathcal{M}_n|^2 ,
+\end{equation}
+with $P_{a\to bc}(x)$ the Altarelli–Parisi splitting function.
+
+\subsection{Structure of NLP and NNLP terms}
+
+Beyond leading power, the amplitude does not fully factorize. Instead, subleading corrections arise from:
+
+\begin{itemize}
+\item subleading splitting amplitudes,
+\item derivatives of the hard amplitude with respect to momenta,
+\item recoil effects from momentum conservation,
+\item azimuthal spin correlations.
+\end{itemize}
+
+These corrections generate terms proportional to
+\begin{equation}
+\frac{l_\perp^\mu}{l_\perp^2},
+\qquad
+\frac{l_\perp^\mu l_\perp^\nu}{l_\perp^2},
+\qquad
+\text{and higher powers.}
+\end{equation}
+\subsection{Azimuthal averaging in $d=4-2\epsilon$}
+
+In dimensional regularization the transverse space has dimension
+\begin{equation}
+d_\perp = 2 - 2\epsilon .
+\end{equation}
+
+Azimuthal averaging over the transverse directions yields
+\begin{equation}
+\left\langle 
+\frac{k_\perp^\mu k_\perp^\nu}{k_\perp^2}
+\right\rangle
+=
+\frac{1}{d_\perp}
+\, g_\perp^{\mu\nu}
+=
+\frac{1}{2(1-\epsilon)}
+\, g_\perp^{\mu\nu}.
+\end{equation}
+
+The transverse metric tensor is defined as
+\begin{equation}
+g_\perp^{\mu\nu}
+=
+- g^{\mu\nu}
++ \frac{p^\mu n^\nu + n^\mu p^\nu}{p \cdot n},
+\end{equation}
+where $p$ and $n$ are lightlike reference vectors satisfying
+\begin{equation}
+p^2 = n^2 = 0,
+\qquad
+p \cdot k_\perp = n \cdot k_\perp = 0 .
+\end{equation}
+
+Combining these relations, one obtains
+\begin{equation}
+\left\langle 
+\frac{k_\perp^\mu k_\perp^\nu}{k_\perp^2}
+\right\rangle
+=
+\frac{1}{2(1-\epsilon)}
+\left(
+- g^{\mu\nu}
++ \frac{p^\mu n^\nu + n^\mu p^\nu}{p \cdot n}
+\right)
+\end{equation}
+
+\subsection{Summary}
+
+The squared amplitude in the collinear limit admits the structure
+\begin{equation}
+|\mathcal{M}_{n+1}|^2
+=
+\frac{1}{l_\perp^2} \mathcal{C}_{-2}
++
+\frac{1}{|l_\perp|} \mathcal{C}_{-1}
++
+\mathcal{C}_{0}
++
+\mathcal{O}(l_\perp),
+\end{equation}
+where
+
+\begin{itemize}
+\item $\mathcal{C}_{-2}$ is universal and governed by splitting functions,
+\item $\mathcal{C}_{-1}$ vanishes after azimuthal averaging,
+\item $\mathcal{C}_{0}$ contains genuine next-to-next-to-leading power information.
+\end{itemize}
+
+This structure forms the basis for transverse-momentum slicing, subtraction methods, and power-correction studies at NLO and NNLO.

@@ -4,12 +4,18 @@ import json
 import shutil
 from pathlib import Path
 
-from glaslib.commands.common import AppState, parse_pick_flag
+from glaslib.commands.common import AppState, parse_pick_flag, update_meta
 import shlex
 
 from glaslib.commands import evaluate, generate, uvct
 from glaslib.core.paths import qgraf_exe, procedures_dir, runs_dir
 from glaslib.core.run_manager import RunContext, list_runs, pick_run_interactive, resolve_tag_from_process_or_tag
+from glaslib.core.models import (
+    get_available_models,
+    get_default_model_id,
+    get_model_by_id,
+    print_available_models,
+)
 
 
 def runs(state: AppState, arg: str) -> None:
@@ -140,3 +146,84 @@ def contract_full(state: AppState, arg: str) -> None:
 
         contract.run(state, cmd)
     uvct.run(state, "")
+
+
+def model(state: AppState, arg: str) -> None:
+    """
+    Model command: show, list, or set the physics model.
+
+    Usage:
+        model              -- Show current model
+        model list         -- List available models
+        model set <id>     -- Set global model for new runs
+        model set --run <id>  -- Set model for current run
+    """
+    toks = shlex.split(arg.strip())
+
+    if not toks:
+        # Show current model
+        print(f"Global model: {state.model_id}")
+        if state.ctx.run_dir and state.ctx.meta:
+            run_model = state.ctx.meta.get("model_id")
+            if run_model:
+                print(f"Run model:    {run_model}")
+            else:
+                print("Run model:    (not set, using global)")
+        return
+
+    subcmd = toks[0].lower()
+
+    if subcmd == "list":
+        print_available_models()
+        return
+
+    if subcmd == "set":
+        if len(toks) < 2:
+            print("Usage: model set <model_id>")
+            print("       model set --run <model_id>")
+            return
+
+        set_run = False
+        model_id = None
+
+        if "--run" in toks:
+            set_run = True
+            idx = toks.index("--run")
+            # model_id is either after --run or elsewhere
+            remaining = [t for i, t in enumerate(toks) if i != idx and i != 0]
+            if remaining:
+                model_id = remaining[0]
+        else:
+            model_id = toks[1]
+
+        if not model_id:
+            print("Usage: model set <model_id>")
+            return
+
+        # Validate model_id
+        m = get_model_by_id(model_id)
+        if not m:
+            print(f"Error: Unknown model '{model_id}'")
+            print("Available models:")
+            for model in get_available_models():
+                print(f"  - {model.id}")
+            return
+
+        if set_run:
+            if not state.ensure_run():
+                return
+            update_meta(state.ctx.run_dir, {"model_id": model_id})  # type: ignore[arg-type]
+            state.ctx.meta["model_id"] = model_id
+            print(f"[model] Run model set to '{model_id}' ({m.name})")
+        else:
+            state.model_id = model_id
+            print(f"[model] Global model set to '{model_id}' ({m.name})")
+        return
+
+    # Unknown subcommand, show help
+    print("Usage:")
+    print("  model              -- Show current model")
+    print("  model list         -- List available models")
+    print("  model set <id>     -- Set global model for new runs")
+    print("  model set --run <id>  -- Set model for current run")
+

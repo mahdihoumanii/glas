@@ -42,7 +42,7 @@ def run(state: AppState, arg: str) -> None:
                     tools_dir=diagrams_dir(),
                     qgraf_exe=qgraf_exe(),
                     style_file=style_file(),
-                    model=state.model,
+                    model_id=state.model_id,
                     keep_temp=state.keep_temp,
                     out_name=run_name,
                 )
@@ -55,7 +55,7 @@ def run(state: AppState, arg: str) -> None:
                 tools_dir=diagrams_dir(),
                 qgraf_exe=qgraf_exe(),
                 style_file=style_file(),
-                model=state.model,
+                model_id=state.model_id,
                 keep_temp=state.keep_temp,
             )
             state.ctx.attach(out["output_dir"])
@@ -69,11 +69,17 @@ def run(state: AppState, arg: str) -> None:
 
         n_diagrams = max(1, max(int(state.ctx.meta.get("n0l") or 0), int(state.ctx.meta.get("n1l") or 0)))
         jobs_req, jobs_eff = clamp_jobs(jobs_req, n_diagrams)
-        meta = update_meta(state.ctx.run_dir, {"jobs_requested": jobs_req, "jobs_effective": jobs_eff})
+        # Store model_id for physics model (Feynman rules selection)
+        meta = update_meta(state.ctx.run_dir, {
+            "jobs_requested": jobs_req,
+            "jobs_effective": jobs_eff,
+            "model_id": state.model_id,
+        })
         state.ctx.meta = meta
 
         print("[generate] OK")
         print(f"  process    : {process_str}")
+        print(f"  model      : {state.model_id}")
         print(f"  output_dir : {state.ctx.run_dir}")
         print(f"  jobs req   : {jobs_req}")
         print(f"  jobs eff   : {jobs_eff}")

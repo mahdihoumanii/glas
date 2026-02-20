@@ -35,20 +35,18 @@ def _split_process(process_str: str) -> Tuple[List[str], List[str]]:
     return lhs_tokens, rhs_tokens
 
 
-def _mass_for_token(tok: str) -> str:
-    tok = tok.lower()
-    if tok in ("t", "t~", "tbar"):
-        return "mt"
-    return "0"
+def _mass_for_token(tok: str, model_id: Optional[str] = None) -> str:
+    from glaslib.core.models import get_mass_for_particle
+    return get_mass_for_particle(tok, model_id or "qcd_massive")
 
 
-def _build_mandelstam_define(process_str: str) -> str:
+def _build_mandelstam_define(process_str: str, model_id: Optional[str] = None) -> str:
     lhs, rhs = _split_process(process_str)
     tokens = [t.lower() for t in (lhs + rhs)]
     n_in = len(lhs)
     n_out = len(rhs)
     momenta = [f"p{i}" for i in range(1, len(tokens) + 1)]
-    masses = [_mass_for_token(t) for t in tokens]
+    masses = [_mass_for_token(t, model_id) for t in tokens]
     return f'#define mand "#call mandelstam{n_in}x{n_out}({",".join(momenta)},{",".join(masses)})"'
 
 
@@ -148,7 +146,8 @@ def prepare_contractLO_project(
     if n0l <= 0:
         raise ValueError("n0l is 0: no tree amplitudes found.")
 
-    mand_define = _build_mandelstam_define(process_str)
+    model_id = meta.get("model_id")
+    mand_define = meta.get("mand_define") or _build_mandelstam_define(process_str, model_id)
     pol_section = _write_gluon_polarization_section(process_str, gluon_refs)
 
     form_dir = output_dir / "form"

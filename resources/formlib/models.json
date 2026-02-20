@@ -1,0 +1,26 @@
+{
+  "default": "qcd_massive",
+  "models": [
+    {
+      "id": "qcd_massive",
+      "name": "QCD (massive)",
+      "description": "Standard QCD with mt mass.",
+      "qgraf_model": "qcd",
+      "feynman_rules_prc": "FeynmanRules.prc"
+    },
+    {
+      "id": "qcd_massless",
+      "name": "QCD (massless)",
+      "description": "Massless QCD (all masses → 0).",
+      "qgraf_model": "qcd",
+      "feynman_rules_prc": "FeynmanRules_Massless.prc"
+    },
+    {
+      "id": "higgs_qcd",
+      "name": "Higgs + QCD",
+      "description": "Higgs+QCD with Yukawa coupling (t-tbar-H).",
+      "qgraf_model": "qcd_higgs",
+      "feynman_rules_prc": "FeynmanRules_Higgs_QCD.prc"
+    }
+  ]
+}

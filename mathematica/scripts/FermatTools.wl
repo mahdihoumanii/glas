@@ -91,7 +91,16 @@ SetFermatPath::notfound = "Path does not exist: `1`";
 
 (* Create deterministic temp directory for Fermat files *)
 $FermatTempDir := Module[{tmpDir, workDir},
-  workDir = DirectoryName[$InputFileName] /. $Failed -> $TemporaryDirectory;
+  (* Use Directory[] first (script should have set this), fall back to $TemporaryDirectory *)
+  workDir = If[
+    StringQ[$InputFileName] && StringLength[$InputFileName] > 0,
+    DirectoryName[$InputFileName],
+    Directory[]
+  ];
+  (* Final fallback if Directory[] also fails *)
+  If[!StringQ[workDir] || StringLength[workDir] === 0,
+    workDir = $TemporaryDirectory
+  ];
   tmpDir = FileNameJoin[{workDir, "Files", "tmp_fermat"}];
   If[!DirectoryQ[tmpDir], CreateDirectory[tmpDir, CreateIntermediateDirectories -> True]];
   tmpDir

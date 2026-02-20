@@ -17,6 +17,9 @@ Cfun Log, Sqrt, Li2, PolyLog , HeavisideTheta, Abs,Sign ;
 ******** QGraf Needed ********
 Cfun q, qin, qout, qB, qBin, qBout, top , topin, topout, topB, topBin, topBout, g, gin, gout, gh, ghB, Power; 
 Cfun gprop, fprop, vx,ghprop, prop, gv,fgv,Pole; 
+******** Higgs fields (for Higgs+QCD model) ********
+Cfun h, hin, hout, hprop;
+S lambdaGGH, mH, vev, yt, neps;
 ******** QGraf Needed ********
 
 Cfun matubgv, matvbgu, matubgu, matvbgv, mass;

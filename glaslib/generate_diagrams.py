@@ -10,8 +10,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from glaslib.core.models import get_qgraf_model
+
 # -----------------------------
-# Physics token → QGRAF symbol
+# Physics name → QGRAF symbol
 # -----------------------------
 PARTICLE_MAP: Dict[str, str] = {
     "q": "q",
@@ -104,13 +106,15 @@ def process_to_tag(lhs: List[str], rhs: List[str]) -> str:
         if tok == "q":
             return "q"
         if tok in ("q~", "qbar"):
-            return "Q"
+            return "qb"
         if tok == "t":
             return "t"
         if tok in ("t~", "tbar"):
-            return "T"
+            return "tb"
         if tok == "g":
             return "g"
+        if tok == "h":
+            return "h"
         raise ValueError(f"Unsupported token in tag: {tok!r}")
 
     return "".join(one(t) for t in (lhs + rhs))
@@ -148,16 +152,32 @@ def _sanitize_out_name(name: str) -> str:
     return name
 
 
-def _next_auto_output_dir(project_root: Path, tag: str) -> Path:
+def _model_suffix(model_id: str) -> str:
+    """Return the suffix to add to run directory names based on model.
+    
+    - qcd_massive: no suffix (default)
+    - qcd_massless: '_massless'
+    - higgs_qcd: '_higgs'
+    """
+    if model_id == "qcd_massless":
+        return "_massless"
+    elif model_id == "higgs_qcd":
+        return "_higgs"
+    return ""
+
+
+def _next_auto_output_dir(project_root: Path, tag: str, model_id: str = "qcd_massive") -> Path:
     project_root = project_root.resolve()
+    suffix = _model_suffix(model_id)
+    base_tag = f"{tag}{suffix}"
     existing = []
-    for p in project_root.glob(f"{tag}_*"):
+    for p in project_root.glob(f"{base_tag}_*"):
         if p.is_dir():
-            m = re.match(rf"{re.escape(tag)}_(\d+)$", p.name)
+            m = re.match(rf"{re.escape(base_tag)}_(\d+)$", p.name)
             if m:
                 existing.append(int(m.group(1)))
     n = (max(existing) + 1) if existing else 1
-    return project_root / f"{tag}_{n:04d}"
+    return project_root / f"{base_tag}_{n:04d}"
 
 
 def _acquire_lock(lock_path: Path) -> None:
@@ -205,7 +225,7 @@ def generate_both(
     tools_dir: Path,
     qgraf_exe: Path,
     style_file: Path,
-    model: str,
+    model_id: str,
     options: Optional[List[str]] = None,
     keep_temp: bool = False,
     out_name: Optional[str] = None,
@@ -238,9 +258,12 @@ def generate_both(
         if output_dir.exists():
             raise FileExistsError(f"Output folder already exists: {output_dir}")
     else:
-        output_dir = _next_auto_output_dir(runs_root, tag)
+        output_dir = _next_auto_output_dir(runs_root, tag, model_id)
 
     output_dir.mkdir(parents=True, exist_ok=False)
+
+    # Get QGRAF model filename from model_id
+    qgraf_model = get_qgraf_model(model_id)
 
     meta_path = output_dir / "meta.json"
     meta: Dict[str, Any] = {
@@ -250,7 +273,7 @@ def generate_both(
         "shape": shape,
         "n_in": n_in,
         "n_out": n_out,
-        "model": model,
+        "model_id": model_id,
         "options": options,
         "output_dir": str(output_dir),
         "n0l": None,
@@ -283,7 +306,7 @@ def generate_both(
             spec = QGrafSpec(
                 output=temp_prefix,
                 style=style_file.name,
-                model=str(model),
+                model=qgraf_model,
                 incoming=incoming,
                 outgoing=outgoing,
                 loops=loops,
@@ -331,7 +354,7 @@ def generate_both(
                 "shape": shape,
                 "n_in": n_in,
                 "n_out": n_out,
-                "model": model,
+                "model_id": model_id,
                 "options": options,
                 "loop": loops,
                 "suffix": suffix,
@@ -375,20 +398,18 @@ def generate_both(
 # -----------------------------
 # FORM prep (RAW evaluate only)
 # -----------------------------
-def _mass_for_particle_token(tok: str) -> str:
-    tok = tok.lower()
-    if tok in ("t", "t~", "tbar"):
-        return "mt"
-    return "0"
+def _mass_for_particle_token(tok: str, model_id: Optional[str] = None) -> str:
+    from glaslib.core.models import get_mass_for_particle
+    return get_mass_for_particle(tok, model_id or "qcd_massive")
 
 
-def _build_mand_define(process_str: str) -> str:
+def _build_mand_define(process_str: str, model_id: Optional[str] = None) -> str:
     lhs, rhs = parse_process(process_str)
     tokens = lhs + rhs
     n_in, n_out = len(lhs), len(rhs)
 
     momenta = [f"p{i}" for i in range(1, len(tokens) + 1)]
-    masses = [_mass_for_particle_token(t) for t in tokens]
+    masses = [_mass_for_particle_token(t, model_id) for t in tokens]
 
     return f'#define mand "#call mandelstam{n_in}x{n_out}({",".join(momenta)},{",".join(masses)})"'
 
@@ -656,7 +677,8 @@ def prepare_form_project(output_dir: Path, *, jobs: int = 1) -> Dict[str, Any]:
     if not (incdir / "declarations.h").exists():
         raise FileNotFoundError(f"declarations.h not found in procedures dir: {incdir}")
 
-    mand_define_line = _build_mand_define(process_str)
+    model_id = meta.get("model_id")
+    mand_define_line = _build_mand_define(process_str, model_id)
 
     form_dir = output_dir / "form"
     files_dir = form_dir / "Files"

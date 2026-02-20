@@ -47,23 +47,23 @@
 \lhead{\leftmark}
 \rfoot{\thepage}
 
-\title{\textbf{GLAS: General Loop Amplitude System}\\[0.5em]
+\title{\textbf{GLAS: General Loop AmplitudeS Framework}\\[0.5em]
 \large A Unified Framework for Automated NLO QCD Calculations}
 
 \author{
-    M.~Houmani\\[0.3em]
+    Mohamad ElMahdi~Houmani\\[0.3em]
     \small\textit{Theoretical Particle Physics}\\[0.2em]
     \small\texttt{elmahdi.houmani@rwth-aachen.de}
 }
 
-\date{\today}
+\date{}
 
 \begin{document}
 
 \maketitle
 
 \begin{abstract}
-We present \textsc{GLAS} (General Loop Amplitude System), a comprehensive software framework for automated next-to-leading order (NLO) QCD calculations. The system provides a unified pipeline that seamlessly integrates diagram generation via \textsc{QGRAF}, symbolic amplitude manipulation using \textsc{FORM}, integral reduction through \textsc{Mathematica} with the \textsc{Blade} package, and UV renormalization in the $\overline{\text{MS}}$ scheme. A key feature is the implementation of finite field techniques using \textsc{FiniteFlow} for efficient identification of linear relations among master integral coefficients. \textsc{GLAS} implements a run-based workflow with parallel execution capabilities, enabling efficient computation of multi-leg processes relevant for LHC phenomenology. We describe the architecture, command interface, and internal algorithms in detail, with particular emphasis on the topology extraction, IBP reduction, renormalization, and finite field reconstruction stages.
+We present \textsc{GLAS} (General Loop AmplitudeS framework), a comprehensive software framework for automated next-to-leading order (NLO) QCD calculations. The system provides a unified pipeline that seamlessly integrates diagram generation via \textsc{QGRAF}, symbolic amplitude manipulation using \textsc{FORM}, integral reduction through \textsc{Mathematica} with the \textsc{Blade} package, and UV renormalization in the $\overline{\text{MS}}$ scheme. A key feature is the implementation of finite field techniques using \textsc{FiniteFlow} for efficient identification of linear relations among master integral coefficients. \textsc{GLAS} implements a run-based workflow with parallel execution capabilities, enabling efficient computation of multi-leg processes relevant for LHC phenomenology. We describe the architecture, command interface, and internal algorithms in detail, with particular emphasis on the topology extraction, IBP reduction, renormalization, and finite field reconstruction stages.
 \end{abstract}
 
 \tableofcontents
@@ -78,6 +78,7 @@ We present \textsc{GLAS} (General Loop Amplitude System), a comprehensive softwa
 \input{sections/ibp}
 \input{sections/linrels}
 \input{sections/renormalization}
+\input{sections/expansion}
 \input{sections/procedures}
 \input{sections/conclusions}
 %\input{sections/acknowledgments}

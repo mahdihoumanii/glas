@@ -27,6 +27,12 @@ def run(state: AppState, arg: str) -> None:
     if not state.ensure_run():
         return
 
+    # Check if massless model - no mass counterterms needed
+    model_id = state.ctx.meta.get("model_id", "qcd_massive") if isinstance(state.ctx.meta, dict) else "qcd_massive"
+    if mode == "mct" and model_id == "qcd_massless":
+        print("[contract mct] Skipped: mass counterterms are zero for massless QCD.")
+        return
+
     jobs_req = _resolve_jobs_requested(state, jobs)
     process_str = state.ctx.meta.get("process", "") if isinstance(state.ctx.meta, dict) else ""
     gluon_refs = state.refs().get_or_prompt(process_str)
