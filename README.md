@@ -2,6 +2,9 @@
 
 GLAS automates the generation and evaluation of loop amplitudes for collider processes, from diagram creation through symbolic reduction. It stitches together QGRAF, FORM, and Mathematica tooling to deliver reproducible, high-precision results. Use it to prototype, validate, and iterate on perturbative computations with minimal manual glue.
 
+A video on how to use GLAS is given here: 
+https://drive.google.com/file/d/1xFFeFzAeUpV_n_t7iYSmw0U3TrtDlvrC/view?usp=share_link
+
 ## Compatibility
 Linus/MacOs
 
